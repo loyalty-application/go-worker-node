@@ -12,11 +12,14 @@ func main() {
 
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
-		"group.id":          "myGroup",
-		"auto.offset.reset": "earliest",
+		"group.id":          "FtpWorkerGroup",
+		"client.id": "producer2",
+		"enable.auto.commit":true,
+		"enable.auto.offset.store": false,
+		"auto.commit.interval.ms": "4000",
 	})
 
-	topic := "purchases"
+	topic := "transaction"
 
 	err = consumer.Subscribe(topic, nil)
 	if err != nil {
