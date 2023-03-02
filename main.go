@@ -11,34 +11,38 @@ import (
 func main() {
 
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost:9092",
-		"group.id":          "FtpWorkerGroup",
-		"client.id": "producer2",
-		"enable.auto.commit":true,
+		"bootstrap.servers":        "localhost:9092",
+		"group.id":                 "FtpWorkerGroup",
+		"client.id":                "FtpProcessing",
+		"enable.auto.commit":       false,
 		"enable.auto.offset.store": false,
-		"auto.commit.interval.ms": "4000",
+		"isolation.level":"read_committed",
 	})
 
-	topic := "transaction"
-
-	err = consumer.Subscribe(topic, nil)
+	topic := "transactions"
+	
+	err = consumer.Assign([]kafka.TopicPartition{{Topic: &topic, Partition: 1,Offset: kafka.OffsetStored}})
 	if err != nil {
 		log.Fatal(err)
 	}
+	
+	// low,_,err := consumer.QueryWatermarkOffsets(topic,2,2000)
+
 
 	run := true
+	
 
 	for run {
 		msg, err := consumer.ReadMessage(time.Second)
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+			consumer.CommitMessage(msg)
+		} else if err != nil {
+		// The client will automatically try to recover from all errors.
+		// Timeout is not considered an error because it is raised by
+		// ReadMessage in absence of messages.
+			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 		}
-		// else if !err.(kafka.Error).IsTimeout() {
-		//// The client will automatically try to recover from all errors.
-		//// Timeout is not considered an error because it is raised by
-		//// ReadMessage in absence of messages.
-		//fmt.Printf("Consumer error: %v (%v)\n", err, msg)
-		//}
 	}
 
 	consumer.Close()
