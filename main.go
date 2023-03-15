@@ -8,8 +8,16 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
+/*
+ * TODO:
+ * 1. Migrate POST method from controller.transaction.go after Gabriel makes it ATOMIC
+ * 2. Implement VALIDATION checks (TBC)
+ * 3. Implement reading from Kafka
+ */
+
 func main() {
 
+	// Setting up a connection with kafka
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        "localhost:9092",
 		"group.id":                 "FtpWorkerGroup",
@@ -20,8 +28,10 @@ func main() {
 		"isolation.level":          "read_committed",
 	})
 
+	// Creating a topic categorization
 	topic := "ftptransactions"
 
+	// Subscribe to the message broker with decided topic
 	consumer.Subscribe(topic, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -29,6 +39,7 @@ func main() {
 
 	run := true
 
+	// Run a infinite loop that constantly checks for messages
 	for run {
 
 		msg, err := consumer.ReadMessage(time.Second)
