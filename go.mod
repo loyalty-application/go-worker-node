@@ -1,10 +1,5 @@
-module github.com/cs301-itsa/project-2022-23t2-project-2022-23t2-g1-t6-worker-service
+module github.com/loyalty-application/go-worker-node
 
-go 1.18
+go 1.20
 
-require (
-	github.com/confluentinc/confluent-kafka-go v1.9.2
-	github.com/linkedin/goavro/v2 v2.12.0
-)
-
-require github.com/golang/snappy v0.0.4 // indirect
+require github.com/confluentinc/confluent-kafka-go v1.9.2
