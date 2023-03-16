@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	// server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        "localhost:9092",
 		"group.id":                 "FtpWorkerGroup",
