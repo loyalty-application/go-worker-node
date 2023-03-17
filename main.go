@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"github.com/gin-gonic/gin"
 	"github.com/loyalty-application/go-worker-node/models"
+	"github.com/loyalty-application/go-worker-node/config"
 )
 
 /*
@@ -18,6 +20,8 @@ import (
  * 2. Implement VALIDATION checks (TBC)
  * 3. Implement reading from Kafka
  */
+
+var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
 
 func CreateTransactions(userId string, transactions models.TransactionList) (result *mongo.InsertManyResult, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -32,8 +36,9 @@ func CreateTransactions(userId string, transactions models.TransactionList) (res
 
 	result, err = transactionCollection.InsertMany(ctx, t)
 	return result, err
-
 }
+
+type TransactionController struct{}
 
 // @Summary Create Transactions for User
 // @Description Create transaction records
@@ -78,9 +83,9 @@ func (t TransactionController) PostTransactions(c *gin.Context) {
 func main() {
 
 	// Setting up a connection with kafka
-	// server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
+	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        "localhost:9092",
+		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
 		"client.id":                "FtpProcessing",
 		"enable.auto.commit":       false,
