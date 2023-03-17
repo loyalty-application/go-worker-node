@@ -1,0 +1,19 @@
+package models
+
+type TransactionList struct {
+	Transactions []Transaction `json:"transactions" bson:",inline"`
+}
+
+type Transaction struct {
+	UserId          string  `json:"-" bson:"user_id" example:"6400a..."`
+	Id              int     `json:"id" bson:"id" example:"1"`
+	TransactionId   string  `json:"transaction_id" bson:"transaction_id" example:"txn00001"`
+	Merchant        string  `json:"merchant" bson:"merchant" example:"7-11"`
+	MCC             string  `json:"mcc" bson:"mcc" example:"5311"`
+	Currency        string  `json:"currency" bson:"currency" example:"USD"`
+	Amount          float64 `json:"amount" bson:"amount" example:"20.10"`
+	TransactionDate string  `json:"transaction_date" bson:"transaction_date" example:"yyyy-mm-dd hh:mm:ss"`
+	CardId          string  `json:"card_id" bson:"card_id" example:"4111222233334444"`
+	CardPan         string  `json:"card_pan" bson:"card_pan" example:"xyz"`
+	CardType        string  `json:"card_type" bson:"card_type" example"super_miles_card"`
+}
