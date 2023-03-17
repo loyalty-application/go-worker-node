@@ -1,0 +1,10 @@
+FROM golang:latest
+
+WORKDIR /worker
+
+COPY . .
+
+RUN go mod download
+
+CMD [ "go", "run", "main.go"]
+
