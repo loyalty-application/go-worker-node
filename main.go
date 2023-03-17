@@ -105,6 +105,8 @@ func main() {
 			
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 
+
+
 			// Only commit after successfully processed the message
 			consumer.CommitMessage(msg)
 		} else if err != nil {
