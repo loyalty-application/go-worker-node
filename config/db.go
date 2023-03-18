@@ -22,6 +22,7 @@ func DBinstance() (client *mongo.Client) {
 	port := os.Getenv("MONGO_PORT")
 
 	conn := fmt.Sprintf("mongodb://%s:%s@%s:%s", user, pass, host, port)
+	// uri := "mongodb://" + user + ":" + pass + "@" + host + ":" + port
 	if port == "" || port == "443" {
 		fmt.Println("Using mongo+srv config")
 		conn = fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority", user, pass, host)
@@ -33,18 +34,20 @@ func DBinstance() (client *mongo.Client) {
 	// connect to mongodb
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err.Error())
 	}
 	fmt.Println("Connected to MongoDB!")
 
 	// initialise indexes
 	InitIndexes(client)
+	fmt.Println("Test")
 
 	return client
 }
 
 func InitIndexes(client *mongo.Client) {
 
+	fmt.Println("Creating Collection")
 	// transactions_transactions_-1 index
 	transactionCollection := OpenCollection(client, "transactions")
 
