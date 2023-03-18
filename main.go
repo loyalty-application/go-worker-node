@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"time"
-
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/joho/godotenv"
 	"github.com/loyalty-application/go-worker-node/models"
@@ -27,7 +26,6 @@ func getMongoCollection(mongoURL, dbName, collectionName string) *mongo.Collecti
 
 	// Check the connection
 	err = client.Connect(context.Background())
-	// err = client.Ping(context.Background(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,23 +39,23 @@ func getMongoCollection(mongoURL, dbName, collectionName string) *mongo.Collecti
 
 func main() {
 	godotenv.Load(".env")
-	user := os.Getenv("MONGO_USERNAME")
-	pass := os.Getenv("MONGO_PASSWORD")
-	host := os.Getenv("MONGO_HOST")
-	port := os.Getenv("MONGO_PORT")
+	// user := os.Getenv("MONGO_USERNAME")
+	// pass := os.Getenv("MONGO_PASSWORD")
+	// host := os.Getenv("MONGO_HOST")
+	// port := os.Getenv("MONGO_PORT")
 
-	mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port
-	// get Mongo db Collection using environment variables.
-	dbName := "loyalty"
-	collectionName := "transactions"
-	collection := getMongoCollection(mongoURL, dbName, collectionName)
-	// server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
+	// mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port + "/?replicaSet=replica-set"
+	// // get Mongo db Collection using environment variables.
+	// dbName := "loyalty"
+	// collectionName := "transactions"
+	// collection := getMongoCollection(mongoURL, dbName, collectionName)
+	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        "localhost:9092",
+		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
 		"client.id":                "FtpProcessing",
-		"enable.auto.commit":       false,
-		"enable.auto.offset.store": false,
+		"enable.auto.commit":       true,
+		"enable.auto.offset.store": true,
 		"auto.offset.reset":        "earliest",
 		"isolation.level":          "read_committed",
 	})
@@ -75,27 +73,28 @@ func main() {
 
 
 	fmt.Println("start consuming ... !!")
+	// counter to check messages consumed
+	count := 0
 	for {
 
-		msg, err := consumer.ReadMessage(time.Second)
+		var transactions models.TransactionList
+		// var msglast *kafka.Message
 
-		if err == nil {
-			// TODO: Process transaction
-			var transaction models.Transaction
-			json.Unmarshal(msg.Value, &transaction)
-			insertResult, err := collection.InsertOne(context.Background(), transaction)
+		for i := 0; i < 30000; i++ {
+			msg, err := consumer.ReadMessage(time.Millisecond)
 			
-			fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 
-			// Only commit after successfully processed the message
 			if err == nil {
-
-				consumer.CommitMessage(msg)
+				var transaction models.Transaction
+				json.Unmarshal(msg.Value, &transaction)
+				transactions.Transactions = append(transactions.Transactions, transaction)
+				count += 1
+			} else {
+				fmt.Println(count)
 			}
-		} else if err != nil {
-			// TODO Handle error
+			
 		}
+		fmt.Println(count)
 	}
-
 
 }
