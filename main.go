@@ -1,101 +1,51 @@
 package main
 
 import (
-	"os"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 	// "net/http"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	// "go.mongodb.org/mongo-driver/mongo"
-	// "github.com/gin-gonic/gin"
-	// "github.com/loyalty-application/go-worker-node/models"
-	// "github.com/loyalty-application/go-worker-node/config"
+	"github.com/loyalty-application/go-worker-node/models"
+	"github.com/loyalty-application/go-worker-node/config"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+
 )
 
-/*
- * TODO:
- * 1. Migrate POST method from controller.transaction.go after Gabriel makes it ATOMIC
- * 2. Implement VALIDATION checks (TBC)
- * 3. Implement reading from Kafka
- */
-
-// var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
-
-// func CreateTransactions(userId string, transactions models.TransactionList) (result *mongo.InsertManyResult, err error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	// convert from slice of struct to slice of interface
-// 	t := make([]interface{}, len(transactions.Transactions))
-// 	for i, v := range transactions.Transactions {
-// 		v.UserId = userId
-// 		t[i] = v
-// 	}
-
-// 	result, err = transactionCollection.InsertMany(ctx, t)
-// 	return result, err
-// }
-
-// type TransactionController struct{}
-
-// @Summary Create Transactions for User
-// @Description Create transaction records
-// @Tags    transaction
-// @Accept  application/json
-// @Produce application/json
-// @Param   Authorization header string true "Bearer eyJhb..."
-// @Param   user_id path string true "user's id"
-// @Param   request body models.TransactionList true "transactions"
-// @Success 200 {object} []models.Transaction
-// @Failure 400 {object} models.HTTPError
-// @Router  /transaction/{user_id} [post]
-// func (t TransactionController) PostTransactions(c *gin.Context) {
-// 	userId := c.Param("userId")
-// 	if userId == "" {
-// 		c.JSON(http.StatusBadRequest, models.HTTPError{http.StatusBadRequest, "Invalid User Id"})
-// 		return
-// 	}
-
-// 	data := new(models.TransactionList)
-// 	err := c.BindJSON(data)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, models.HTTPError{http.StatusBadRequest, "Invalid Transaction Object" + err.Error()})
-// 		return
-// 	}
-
-// 	// TODO: make this operation atomic https://www.mongodb.com/docs/drivers/go/current/fundamentals/transactions/
-// 	result, err := CreateTransactions(userId, *data)
-// 	if err != nil {
-// 		msg := "Invalid Transactions"
-// 		if mongo.IsDuplicateKeyError(err) {
-// 			msg = "transaction_id already exists"
-// 		}
-// 		c.JSON(http.StatusBadRequest, models.HTTPError{http.StatusBadRequest, msg})
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, result)
-// }
-
-const DEBOUNCE_COUNTER = 6
-const COMMIT_INTERVAL = 5
+var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
 
 func main() {
 
-	// Setting up a connection with kafka
+	// user := os.Getenv("MONGO_USERNAME")
+	// pass := os.Getenv("MONGO_PASSWORD")
+	// host := os.Getenv("MONGO_HOST")
+	// port := os.Getenv("MONGO_PORT")
+	config.DBinstance()
+	// mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port + "/?replicaSet=replica-set"
+	// // get Mongo db Collection using environment variables.
+	// dbName := "loyalty"
+	// collectionName := "transactions"
+	// collection := getMongoCollection(mongoURL, dbName, collectionName)
 	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
 		"client.id":                "FtpProcessing",
 		"enable.auto.commit":       false,
-		"enable.auto.offset.store": false,
+		"enable.auto.offset.store": true,
 		"auto.offset.reset":        "earliest",
 		"isolation.level":          "read_committed",
 	})
 
-	// Creating a topic categorization
+	defer consumer.Close()
+
+
 	topic := "ftptransactions"
 
 	// Subscribe to the message broker with decided topic
@@ -106,47 +56,83 @@ func main() {
 		log.Fatal(err)
 	}
 
-	timer := DEBOUNCE_COUNTER
-	messageConsumed := 0
-	var msg *kafka.Message = nil
-	var prevMsg *kafka.Message = nil
 
-	// Run a infinite loop that constantly checks for messages
-	for true {
-		// fmt.Println("Hello World")
-		log.Println("========", timer)
-		timer--
-		prevMsg = msg
-		msg, err := consumer.ReadMessage(time.Second)
-		// fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 
-		if err == nil {
-			// TODO: Process transaction
+	fmt.Println("start consuming ... !!")
+	// counter to check messages consumed
+	count := 0
+	for {
+
+		var transactions models.TransactionList
+
+		for i := 0; i < 50000; i++ {
+			msg, err := consumer.ReadMessage(time.Millisecond)
 			
-			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
-			timer = DEBOUNCE_COUNTER  // Reset the timer
-			messageConsumed++
 
-			// Only commit after successfully processed the message
-			if messageConsumed == COMMIT_INTERVAL {
-				consumer.CommitMessage(msg)
-				fmt.Println("Committing", messageConsumed, "messages")
-				messageConsumed = 0
+			if err == nil {
+				var transaction models.Transaction
+				json.Unmarshal(msg.Value, &transaction)
+				transactions.Transactions = append(transactions.Transactions, transaction)
+				count += 1
+			} else {
+				break
 			}
-		
-		// No message to consume, commit once timer timeouts
-		} else if err != nil {
-			if timer == 0 {
-				if prevMsg != nil {
-					consumer.CommitMessage(prevMsg)
-				}
-				fmt.Println("DEB TIMEOUT: Committing", messageConsumed, "messages")
-				timer = DEBOUNCE_COUNTER
-				messageConsumed = 0
+			
+		}
+
+		if len(transactions.Transactions) != 0 {
+			_, err := CreateTransactions(transactions)
+			if err == nil {
+				consumer.Commit()
 			}
 		}
 	}
 
-	consumer.Close()
+}
 
+func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
+	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// convert from slice of struct to slice of interface
+	t := make([]interface{}, len(transactions.Transactions))
+	for i, v := range transactions.Transactions {
+		t[i] = v
+	}
+
+	// Setting write permissions
+	wc := writeconcern.New(writeconcern.WMajority())
+	txnOpts := options.Transaction().SetWriteConcern(wc)
+
+	// Start new session
+	session, err := config.Client.StartSession()
+	if err != nil {
+		return nil, err
+	}
+	defer session.EndSession(context.Background())
+
+	// Start transaction
+	if err = session.StartTransaction(txnOpts); err != nil {
+		return nil, err
+	}
+	log.Println("Transaction Start without errors")
+
+	// Insert documents in the current session
+	log.Println("Before Insert")
+	result, err = transactionCollection.InsertMany(mongo.NewSessionContext(context.Background(),session), t)
+	log.Println("After Insert")
+	defer cancel()
+
+	if err != nil {
+		log.Println("Insert Many Error = ", err.Error())
+		// Abort session if got error
+		session.AbortTransaction(context.Background())
+		// log.Println("Aborted Transaction")
+		return result, err
+	}
+
+	// Commit documents if no error
+	err = session.CommitTransaction(context.Background())
+
+	return result, err
 }
