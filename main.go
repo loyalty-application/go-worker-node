@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -36,7 +37,6 @@ func main() {
 	}
 
 	fmt.Println("start consuming ... !!")
-	count := 0  // counter to check messages consumed
 
 	for {
 		var transactions models.TransactionList
@@ -44,15 +44,11 @@ func main() {
 		for i := 0; i < 50000; i++ {
 			msg, err := consumer.ReadMessage(time.Millisecond)
 			
-			if err != nil {
-				break
-			}
+			if err != nil { break }
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
-			fmt.Println("Card Type:", transaction.CardType)
 			transactions.Transactions = append(transactions.Transactions, transaction)
-			count += 1
 		}
 
 		// If there are transactions, insert them into the DB and commit
@@ -128,19 +124,59 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	return result, err
 }
 
+// QUESTIONS:
+// 1. How to determine online shopping?
+// 2. How to determine exchange rate?
 
-SCIS Shopping -- 
-func convertPoints(transaction model.Transaction) {
+func getExchangeRate(currency string) float64 {
+	// TODO: Implement an exchange rate getter
+	return 1.0
+}
+
+func in(arr []int, target int) bool {
+	for _, item := range arr {
+		if item == target { return true }
+	}
+	return false
+}
+
+func convertPoints(transaction *models.Transaction) {
 
 	// MCC code categorization (SUBJECT TO CHANGES)
-	const ONLINE_SHOPPING := []int{5999, 5964, 5691, 5311, 5411, 5399}
-	const HOTEL := []int{7011}
+	var ONLINE_SHOPPING = []int{5999, 5964, 5691, 5311, 5411, 5399}
+	var HOTEL = []int{7011}
+	var EXCLUDED_MCCS = []int{6051, 9399, 6540}
 
-	// Identify foreign or not foreign spend type
+	// If MCC is to be excluded, do not convert to points
+	mcc, _ := strconv.Atoi(transaction.MCC)
+	if in(EXCLUDED_MCCS, mcc) {
+		return
+	}
 
 	// Get amount spent
+	amountSpent := transaction.Amount * getExchangeRate(transaction.Currency)
 
-	// Get card type
+	// Conversion: $$ -> POINTS
+	if transaction.CardType == "scis_shopping" {
+		pointsConversionRate := 4
+		if in(ONLINE_SHOPPING, mcc) {  // Bonus for online shopping
+			pointsConversionRate = 10
+		}
+		transaction.Points = amountSpent * float64(pointsConversionRate + 1)
 
-	// Convert according to card-point-type
+	// Conversion: $$ -> CASHBACK
+	} else if transaction.CardType == "scis_freedom" {
+		cashBack := 0.005 * amountSpent
+		if amountSpent > 500 {
+			cashBack += 0.01 * amountSpent
+		}
+		if amountSpent > 2000 {
+			cashBack += 0.03 * amountSpent
+		}
+		transaction.CashBack = cashBack
+
+	// Conversion: $$ -> MILES
+	} else {
+
+	}
 }
