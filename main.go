@@ -21,16 +21,7 @@ var transactionCollection *mongo.Collection = config.OpenCollection(config.Clien
 
 func main() {
 
-	// user := os.Getenv("MONGO_USERNAME")
-	// pass := os.Getenv("MONGO_PASSWORD")
-	// host := os.Getenv("MONGO_HOST")
-	// port := os.Getenv("MONGO_PORT")
 	config.DBinstance()
-	// mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port + "/?replicaSet=replica-set"
-	// // get Mongo db Collection using environment variables.
-	// dbName := "loyalty"
-	// collectionName := "transactions"
-	// collection := getMongoCollection(mongoURL, dbName, collectionName)
 	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        server,
@@ -61,7 +52,7 @@ func main() {
 
 		var transactions models.TransactionList
 
-		for i := 0; i < 50000; i++ {
+		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Millisecond)
 			
 
@@ -80,6 +71,8 @@ func main() {
 			_, err := CreateTransactions(transactions)
 			if err == nil {
 				consumer.Commit()
+			} else {
+				log.Println(err.Error())
 			}
 		}
 	}
