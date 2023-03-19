@@ -14,7 +14,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 )
 
@@ -91,7 +90,7 @@ func main() {
 }
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// convert from slice of struct to slice of interface
@@ -100,39 +99,21 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 		t[i] = v
 	}
 
-	// Setting write permissions
-	wc := writeconcern.New(writeconcern.WMajority())
-	txnOpts := options.Transaction().SetWriteConcern(wc)
-
-	// Start new session
-	session, err := config.Client.StartSession()
-	if err != nil {
-		return nil, err
+	// convert from slice of interface to mongo's bulkWrite model
+	models := make([]mongo.WriteModel, 0)
+	for _, doc := range t {
+		models = append(models, mongo.NewInsertOneModel().SetDocument(doc))
 	}
-	defer session.EndSession(context.Background())
-
-	// Start transaction
-	if err = session.StartTransaction(txnOpts); err != nil {
-		return nil, err
-	}
-	log.Println("Transaction Start without errors")
-
-	// Insert documents in the current session
-	log.Println("Before Insert")
-	result, err = transactionCollection.InsertMany(mongo.NewSessionContext(context.Background(),session), t)
-	log.Println("After Insert")
-	defer cancel()
-
-	if err != nil {
-		log.Println("Insert Many Error = ", err.Error())
-		// Abort session if got error
-		session.AbortTransaction(context.Background())
-		// log.Println("Aborted Transaction")
+	
+	// If an error occurs during the processing of one of the write operations, MongoDB
+	// will continue to process remaining write operations in the list.
+	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
+	// log.Println("Bulk Writing", models)
+	result, err = transactionCollection.BulkWrite(ctx, models, bulkWriteOptions)
+    if err != nil {
+        log.Println(err.Error())
 		return result, err
-	}
-
-	// Commit documents if no error
-	err = session.CommitTransaction(context.Background())
+    }
 
 	return result, err
 }
