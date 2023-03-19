@@ -48,6 +48,9 @@ func main() {
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
+			fmt.Println("Begin converting points")
+			convertPoints(&transaction)
+			fmt.Println("Finished converting points")
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
@@ -177,6 +180,6 @@ func convertPoints(transaction *models.Transaction) {
 
 	// Conversion: $$ -> MILES
 	} else {
-
+		transaction.Miles = 0
 	}
 }
