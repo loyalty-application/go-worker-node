@@ -21,18 +21,55 @@ var transactionCollection *mongo.Collection = config.OpenCollection(config.Clien
 
 func main() {
 
-	// user := os.Getenv("MONGO_USERNAME")
-	// pass := os.Getenv("MONGO_PASSWORD")
-	// host := os.Getenv("MONGO_HOST")
-	// port := os.Getenv("MONGO_PORT")
+	// Connect to DB
 	config.DBinstance()
-	// mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port + "/?replicaSet=replica-set"
-	// // get Mongo db Collection using environment variables.
-	// dbName := "loyalty"
-	// collectionName := "transactions"
-	// collection := getMongoCollection(mongoURL, dbName, collectionName)
+
+	// Create a new Kafka Conumer
+	consumer, err := getKafkaConsumer()
+	defer consumer.Close()
+
+	// Subscribe to kafka topic
+	topic := "ftptransactions"
+	consumer.Subscribe(topic, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("start consuming ... !!")
+	count := 0  // counter to check messages consumed
+
+	for {
+		var transactions models.TransactionList
+
+		for i := 0; i < 50000; i++ {
+			msg, err := consumer.ReadMessage(time.Millisecond)
+			
+			if err != nil {
+				break
+			}
+
+			var transaction models.Transaction
+			json.Unmarshal(msg.Value, &transaction)
+			fmt.Println("Card Type:", transaction.CardType)
+			transactions.Transactions = append(transactions.Transactions, transaction)
+			count += 1
+		}
+
+		// If there are transactions, insert them into the DB and commit
+		if len(transactions.Transactions) != 0 {
+			_, err := CreateTransactions(transactions)
+			if err == nil {
+				consumer.Commit()
+			}
+		}
+	}
+}
+
+
+func getKafkaConsumer() (consumer *kafka.Consumer, err error) {
 	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+	
+	return kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
 		"client.id":                "FtpProcessing",
@@ -41,50 +78,8 @@ func main() {
 		"auto.offset.reset":        "earliest",
 		"isolation.level":          "read_committed",
 	})
-
-	defer consumer.Close()
-
-
-	topic := "ftptransactions"
-
-	consumer.Subscribe(topic, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-
-	fmt.Println("start consuming ... !!")
-	// counter to check messages consumed
-	count := 0
-	for {
-
-		var transactions models.TransactionList
-
-		for i := 0; i < 50000; i++ {
-			msg, err := consumer.ReadMessage(time.Millisecond)
-			
-
-			if err == nil {
-				var transaction models.Transaction
-				json.Unmarshal(msg.Value, &transaction)
-				transactions.Transactions = append(transactions.Transactions, transaction)
-				count += 1
-			} else {
-				break
-			}
-			
-		}
-
-		if len(transactions.Transactions) != 0 {
-			_, err := CreateTransactions(transactions)
-			if err == nil {
-				consumer.Commit()
-			}
-		}
-	}
-
 }
+
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -131,4 +126,21 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	err = session.CommitTransaction(context.Background())
 
 	return result, err
+}
+
+
+SCIS Shopping -- 
+func convertPoints(transaction model.Transaction) {
+
+	// MCC code categorization (SUBJECT TO CHANGES)
+	const ONLINE_SHOPPING := []int{5999, 5964, 5691, 5311, 5411, 5399}
+	const HOTEL := []int{7011}
+
+	// Identify foreign or not foreign spend type
+
+	// Get amount spent
+
+	// Get card type
+
+	// Convert according to card-point-type
 }
