@@ -1,21 +1,21 @@
 package main
 
 import (
-	"strconv"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
+	
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/loyalty-application/go-worker-node/models"
 	"github.com/loyalty-application/go-worker-node/config"
+	"github.com/loyalty-application/go-worker-node/services"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-
 )
 
 var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
@@ -48,9 +48,8 @@ func main() {
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
-			fmt.Println("Begin converting points")
-			convertPoints(&transaction)
-			fmt.Println("Finished converting points")
+			services.ConvertPoints(&transaction)
+			fmt.Println(transaction)  // DEBUG
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
@@ -125,61 +124,4 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	err = session.CommitTransaction(context.Background())
 
 	return result, err
-}
-
-// QUESTIONS:
-// 1. How to determine online shopping?
-// 2. How to determine exchange rate?
-
-func getExchangeRate(currency string) float64 {
-	// TODO: Implement an exchange rate getter
-	return 1.0
-}
-
-func in(arr []int, target int) bool {
-	for _, item := range arr {
-		if item == target { return true }
-	}
-	return false
-}
-
-func convertPoints(transaction *models.Transaction) {
-
-	// MCC code categorization (SUBJECT TO CHANGES)
-	var ONLINE_SHOPPING = []int{5999, 5964, 5691, 5311, 5411, 5399}
-	var HOTEL = []int{7011}
-	var EXCLUDED_MCCS = []int{6051, 9399, 6540}
-
-	// If MCC is to be excluded, do not convert to points
-	mcc, _ := strconv.Atoi(transaction.MCC)
-	if in(EXCLUDED_MCCS, mcc) {
-		return
-	}
-
-	// Get amount spent
-	amountSpent := transaction.Amount * getExchangeRate(transaction.Currency)
-
-	// Conversion: $$ -> POINTS
-	if transaction.CardType == "scis_shopping" {
-		pointsConversionRate := 4
-		if in(ONLINE_SHOPPING, mcc) {  // Bonus for online shopping
-			pointsConversionRate = 10
-		}
-		transaction.Points = amountSpent * float64(pointsConversionRate + 1)
-
-	// Conversion: $$ -> CASHBACK
-	} else if transaction.CardType == "scis_freedom" {
-		cashBack := 0.005 * amountSpent
-		if amountSpent > 500 {
-			cashBack += 0.01 * amountSpent
-		}
-		if amountSpent > 2000 {
-			cashBack += 0.03 * amountSpent
-		}
-		transaction.CashBack = cashBack
-
-	// Conversion: $$ -> MILES
-	} else {
-		transaction.Miles = 0
-	}
 }
