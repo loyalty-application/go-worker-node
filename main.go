@@ -103,7 +103,7 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
 	// log.Println("Bulk Writing", models)
 	result, err = transactionCollection.BulkWrite(ctx, models, bulkWriteOptions)
-    if err != nil {
+    if err != nil && !mongo.IsDuplicateKeyError(err) {
         log.Println(err.Error())
 		return result, err
     }
