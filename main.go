@@ -7,32 +7,67 @@ import (
 	"log"
 	"os"
 	"time"
-	// "net/http"
+	
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/loyalty-application/go-worker-node/models"
 	"github.com/loyalty-application/go-worker-node/config"
+	"github.com/loyalty-application/go-worker-node/services"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
 
 func main() {
 
-	// user := os.Getenv("MONGO_USERNAME")
-	// pass := os.Getenv("MONGO_PASSWORD")
-	// host := os.Getenv("MONGO_HOST")
-	// port := os.Getenv("MONGO_PORT")
+	// Connect to DB
 	config.DBinstance()
-	// mongoURL := "mongodb://" + user + ":" + pass + "@" + host + ":" + port + "/?replicaSet=replica-set"
-	// // get Mongo db Collection using environment variables.
-	// dbName := "loyalty"
-	// collectionName := "transactions"
-	// collection := getMongoCollection(mongoURL, dbName, collectionName)
+
+	// Create a new Kafka Conumer
+	consumer, err := getKafkaConsumer()
+	defer consumer.Close()
+
+	// Subscribe to kafka topic
+	topic := "ftptransactions"
+	consumer.Subscribe(topic, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("start consuming ... !!")
+
+	for {
+		var transactions models.TransactionList
+
+		for i := 0; i < 50000; i++ {
+			msg, err := consumer.ReadMessage(time.Millisecond)
+			
+			if err != nil { break }
+
+			var transaction models.Transaction
+			json.Unmarshal(msg.Value, &transaction)
+			services.ConvertPoints(&transaction)
+			fmt.Println(transaction)  // DEBUG
+			transactions.Transactions = append(transactions.Transactions, transaction)
+		}
+
+		// If there are transactions, insert them into the DB and commit
+		if len(transactions.Transactions) != 0 {
+			_, err := CreateTransactions(transactions)
+			if err == nil {
+				consumer.Commit()
+			}
+		}
+	}
+}
+
+
+func getKafkaConsumer() (consumer *kafka.Consumer, err error) {
 	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+	
+	return kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
 		"client.id":                "FtpProcessing",
@@ -41,53 +76,8 @@ func main() {
 		"auto.offset.reset":        "earliest",
 		"isolation.level":          "read_committed",
 	})
-
-	defer consumer.Close()
-
-
-	topic := "ftptransactions"
-
-	// Subscribe to the message broker with decided topic
-	log.Println("Subscribing")
-	err = consumer.Subscribe(topic, nil)
-	log.Println("Past Subscribe")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-
-	fmt.Println("start consuming ... !!")
-	// counter to check messages consumed
-	count := 0
-	for {
-
-		var transactions models.TransactionList
-
-		for i := 0; i < 50000; i++ {
-			msg, err := consumer.ReadMessage(time.Millisecond)
-			
-
-			if err == nil {
-				var transaction models.Transaction
-				json.Unmarshal(msg.Value, &transaction)
-				transactions.Transactions = append(transactions.Transactions, transaction)
-				count += 1
-			} else {
-				break
-			}
-			
-		}
-
-		if len(transactions.Transactions) != 0 {
-			_, err := CreateTransactions(transactions)
-			if err == nil {
-				consumer.Commit()
-			}
-		}
-	}
-
 }
+
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
