@@ -69,15 +69,15 @@ func calculatePoints(transaction *models.Transaction, amountSpent float64) {
 
 	mcc, _ := strconv.Atoi(transaction.MCC)
 
-	pointsConversionRate := 1  // Base conversion rate for all spend types
+	pointsConversionRate := 0.01  // Base conversion rate for all spend types
 
 	// Bonus for online shopping
 	if In(ONLINE_SHOPPING, mcc) {
-		pointsConversionRate = 10
+		pointsConversionRate = 0.1
 
 	// Bonus for shopping
 	} else if In(SHOPPING, mcc) {
-		pointsConversionRate = 4
+		pointsConversionRate = 0.04
 	}
 	
 	transaction.Points = amountSpent * float64(pointsConversionRate)
@@ -99,25 +99,25 @@ func calculateMiles(transaction *models.Transaction, amountSpent float64) {
 	mcc, _ := strconv.Atoi(transaction.MCC)
 
 	// Get base rate for premium vs platinum
-	milesConversionRate := 1.1
+	milesConversionRate := 0.011
 	if transaction.CardType == "scis_platinummiles" {
-		milesConversionRate = 1.4
+		milesConversionRate = 0.014
 	}
 
 	// If spend type is foreign
 	if transaction.Currency != "SGD" {
 		// Base conversion rate for foreign card spend
-		milesConversionRate = 2.2
+		milesConversionRate = 0.022
 		if transaction.CardType == "scis_platinummiles" {
-			milesConversionRate = 3
+			milesConversionRate = 0.03
 
 			// If it is a foreign hotel spend
-			if In(HOTEL, mcc) { milesConversionRate = 6 }
+			if In(HOTEL, mcc) { milesConversionRate = 0.06 }
 		}
 		
 	// For local hotel spends
 	} else if In(HOTEL, mcc) {
-		milesConversionRate = 3
+		milesConversionRate = 0.03
 	}
 	transaction.Miles = amountSpent * milesConversionRate
 }
