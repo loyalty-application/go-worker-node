@@ -29,21 +29,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	fmt.Println("start consuming ... !!")
 
 	for {
 		var transactions models.TransactionList
 
+		// Process transactions in batches
 		for i := 0; i < 50000; i++ {
 			msg, err := consumer.ReadMessage(time.Millisecond)
 			
-			if err != nil { break }
+			if err != nil {
+				break
+			}
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
+
+			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
-			fmt.Println(transaction)  // DEBUG
+
+			// Retrieve and apply campaign bonus, if applicable
+			services.ApplyApplicableCampaign(&transaction)
+
+			fmt.Println("Transaction:", transaction)  // DEBUG
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
