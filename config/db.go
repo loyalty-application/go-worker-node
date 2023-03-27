@@ -6,9 +6,10 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"github.com/joho/godotenv"
 )
 
 var Client *mongo.Client = DBinstance()
@@ -21,11 +22,12 @@ func DBinstance() (client *mongo.Client) {
 	host := os.Getenv("MONGO_HOST")
 	port := os.Getenv("MONGO_PORT")
 
-	conn := fmt.Sprintf("mongodb://%s:%s@%s:%s/?replicaSet=replica-set", user, pass, host, port)
-	if port == "" || port == "443" {
-		fmt.Println("Using mongo+srv config")
-		conn = fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority", user, pass, host)
+	replicaSet := "replica-set"
+	if os.Getenv("GIN_MODE") == "release" {
+		replicaSet = "rs0"
 	}
+	conn := fmt.Sprintf("mongodb://%s:%s@%s:%s/?replicaSet=%s", user, pass, host, port, replicaSet)
+
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().ApplyURI(conn).SetServerAPIOptions(serverAPIOptions)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
