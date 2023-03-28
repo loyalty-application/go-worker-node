@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AuthLoginRequest struct {
@@ -36,15 +34,40 @@ type AuthRegistrationResponse struct {
 	UserID string `json:"InsertedID" example:"6400a..."`
 }
 
+type UserList struct {
+	Users []User `json:"users" bson:",inline"`
+}
+
 type User struct {
-	UserID       primitive.ObjectID `json:"user_id,omitempty" bson:"_id"`
-	FirstName    *string            `json:"first_name" bson:"first_name" validate:"required,min=2,max=100"`
-	LastName     *string            `json:"last_name" bson:"last_name" validate:"required,min=2,max=100"`
-	Password     *string            `json:"password" bson:"password" validate:"required,min=6"`
-	Email        *string            `json:"email" bson:"email" validate:"email,required"`
-	Phone        *string            `json:"phone" bson:"phone" validate:"required"`
-	Token        *string            `json:"token" bson:"token"`
-	RefreshToken *string            `json:"refresh_token" bson:"refresh_token"`
-	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
+	UserID       *string   `json:"user_id" bson:"user_id"`
+	FirstName    *string   `json:"first_name" bson:"first_name" validate:"required,min=2,max=100"`
+	LastName     *string   `json:"last_name" bson:"last_name" validate:"required,min=2,max=100"`
+	Password     *string   `json:"password" bson:"password" validate:"required,min=6"`
+	Email        *string   `json:"email" bson:"email" validate:"email,required"`
+	Phone        *string   `json:"phone" bson:"phone" validate:"required"`
+	Token        *string   `json:"token" bson:"token"`
+	RefreshToken *string   `json:"refresh_token" bson:"refresh_token"`
+	CreatedAt    time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" bson:"updated_at"`
+	Card         []string  `json:"cards" bson:"cards"`
+	Points       float64   `json:"points" bson:"points"`
+	Miles        float64   `json:"miles" bson:"miles"`
+	Cashback     float64   `json:"cashback" bson:"cashback"`
+}
+
+type UserRecordList struct {
+	UserRecords []UserRecord `json:"user_records" bson:",inline"`
+}
+
+type UserRecord struct {
+	Id        string `json:"id" bson:"_id" example:"1"`
+	FirstName string `json:"first_name" bson:"first_name" example:"John"`
+	LastName  string `json:"last_name" bson:"last_name" example:"Tan"`
+	Phone     string `json:"phone" bson:"phone" example:"6591242643"`
+	Email     string `json:"email" bson:"email" example:"Dorthea.Ebert@hotmail.com"`
+	CreatedAt string `json:"created_at" bson:"created_at" example:"2021-08-23 06:51:25"`
+	UpdatedAt string `json:"updated_at" bson:"updated_at" example:"2021-08-23 06:51:25"`
+	CardId    string `json:"card_id" bson:"card_id" example:"4111222233334444"`
+	CardPan   string `json:"card_pan" bson:"card_pan" example:"xyz"`
+	CardType  string `json:"card_type" bson:"card_type" example:"super_miles_card"`
 }
