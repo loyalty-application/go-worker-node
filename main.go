@@ -36,7 +36,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("consuming ... !! Type =", topic)
+	log.Println("test consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" {
@@ -58,21 +58,23 @@ func processUsers(consumer *kafka.Consumer) {
 			var userRecord models.UserRecord
 			json.Unmarshal(msg.Value, &userRecord)
 			user, err := services.GetUserFromRecord(userRecord)
+			card, err := services.GetCardFromRecord(userRecord)
 
 			// Debug
 			log.Println("User Record", userRecord)
 			log.Println("User", user)
+			log.Println("Card", card)
 
 			userRecords.UserRecords = append(userRecords.UserRecords, userRecord)
 			users.Users = append(users.Users, user)
 		}
 
-		// If there are transactions, insert them into the DB and commit
-		if len(userRecords.UserRecords) != 0 {
-			// collections.CreateTransactions(transactions)
-			log.Println("Committing", userRecords.UserRecords)
-			consumer.Commit()
-		}
+		// // If there are transactions, insert them into the DB and commit
+		// if len(userRecords.UserRecords) != 0 {
+		// 	// collections.CreateTransactions(transactions)
+		// 	log.Println("Committing", userRecords.UserRecords)
+		// 	consumer.Commit()
+		// }
 
 	}
 }
