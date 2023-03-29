@@ -24,12 +24,15 @@ func main() {
 
 	// Subscribe to kafka topic based on worker node type
 	workerType := os.Getenv("WORKER_NODE_TYPE")
+	log.Println(workerType)
 	topic := ""
 	if workerType == "users" {
 		log.Println("In here")
 		topic = "users"
 	} else if workerType == "transactions" {
 		topic = "ftptransactions"
+	} else if workerType == "resttransactions" {
+		topic = "resttransactions"
 	}
 	consumer.Subscribe(topic, nil)
 	if err != nil {
@@ -39,7 +42,7 @@ func main() {
 	log.Println("world consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
-	} else if workerType == "transactions" {
+	} else if workerType == "transactions" || workerType == "resttransactions" {
 		processTransactions(consumer)
 	}
 }
@@ -106,7 +109,7 @@ func processTransactions(consumer *kafka.Consumer) {
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
 			services.ConvertPoints(&transaction)
-			// fmt.Println(transaction)  // DEBUG
+			log.Println(transaction)  // DEBUG
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
