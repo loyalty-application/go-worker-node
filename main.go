@@ -104,10 +104,14 @@ func processTransactions(consumer *kafka.Consumer) {
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
 			
-			if err != nil { break }
+			if err != nil {
+				break
+			}
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
+
+			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
 			log.Println(transaction)  // DEBUG
 			transactions.Transactions = append(transactions.Transactions, transaction)
