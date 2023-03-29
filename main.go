@@ -36,7 +36,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("consuming ... !! Type =", topic)
+	log.Println("world consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" {
@@ -58,11 +58,14 @@ func processUsers(consumer *kafka.Consumer) {
 			var userRecord models.UserRecord
 			json.Unmarshal(msg.Value, &userRecord)
 			user, err := services.GetUserFromRecord(userRecord)
+
 			if err == nil {
 				users.Users = append(users.Users, user)
 			}
+			
 			card, err := services.GetCardFromRecord(userRecord)
 			if err == nil {
+				// log.Println("Card =", card)
 				cards.Cards = append(cards.Cards, card)
 			}
 

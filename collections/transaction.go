@@ -15,7 +15,7 @@ import (
 var transactionsCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	// convert from slice of struct to slice of interface

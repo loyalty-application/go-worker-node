@@ -39,7 +39,7 @@ type UserList struct {
 }
 
 type User struct {
-	UserID       *string   `json:"user_id" bson:"_id"`
+	UserID       *string   `json:"user_id" bson:"user_id"`
 	FirstName    *string   `json:"first_name" bson:"first_name" validate:"required,min=2,max=100"`
 	LastName     *string   `json:"last_name" bson:"last_name" validate:"required,min=2,max=100"`
 	Password     *string   `json:"password" bson:"password" validate:"required,min=6"`
@@ -49,7 +49,6 @@ type User struct {
 	RefreshToken *string   `json:"refresh_token" bson:"refresh_token"`
 	CreatedAt    time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" bson:"updated_at"`
-	// Card         []string  `json:"cards" bson:"cards"`
 	Points       float64   `json:"points" bson:"points"`
 	Miles        float64   `json:"miles" bson:"miles"`
 	Cashback     float64   `json:"cashback" bson:"cashback"`

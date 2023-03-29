@@ -67,8 +67,8 @@ func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err er
 
 	// Create card if card doesn't exist
 	result = models.Card{
-		UserEmail: userRecord.Email,
 		CardId: userRecord.CardId,
+		UserId: userRecord.Id,
 		CardPan: userRecord.CardPan,
 		CardType: userRecord.CardType,
 		ValueType: ProcessCardType(userRecord.CardType),

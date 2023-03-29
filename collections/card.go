@@ -34,7 +34,7 @@ func CreateCard(card models.Card) (result *mongo.InsertOneResult, err error) {
 }
 
 func CreateCards(cards models.CardList) (result interface{}, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	// convert from slice of struct to slice of interface
@@ -46,17 +46,16 @@ func CreateCards(cards models.CardList) (result interface{}, err error) {
 	// convert from slice of interface to mongo's bulkWrite model
 	models := make([]mongo.WriteModel, 0)
 	for _, doc := range t {
+		// log.Println("Doc =",doc)
 		models = append(models, mongo.NewInsertOneModel().SetDocument(doc))
 	}
 	
 	// If an error occurs during the processing of one of the write operations, MongoDB
 	// will continue to process remaining write operations in the list.
 	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
-	// log.Println("Bulk Writing", models)
 	result, err = cardCollection.BulkWrite(ctx, models, bulkWriteOptions)
-    if err != nil && !mongo.IsDuplicateKeyError(err) {
+    if err != nil {
         log.Println(err.Error())
-		panic(err)
     }
 
 	return result, err
