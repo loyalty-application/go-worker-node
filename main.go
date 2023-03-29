@@ -36,7 +36,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("test consuming ... !! Type =", topic)
+	log.Println("consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" {
@@ -47,8 +47,8 @@ func main() {
 func processUsers(consumer *kafka.Consumer) {
 
 	for {
-		var userRecords models.UserRecordList
 		var users models.UserList
+		var cards models.CardList
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
@@ -58,24 +58,35 @@ func processUsers(consumer *kafka.Consumer) {
 			var userRecord models.UserRecord
 			json.Unmarshal(msg.Value, &userRecord)
 			user, err := services.GetUserFromRecord(userRecord)
+			if err == nil {
+				users.Users = append(users.Users, user)
+			}
 			card, err := services.GetCardFromRecord(userRecord)
+			if err == nil {
+				cards.Cards = append(cards.Cards, card)
+			}
 
-			// Debug
-			log.Println("User Record", userRecord)
-			log.Println("User", user)
-			log.Println("Card", card)
-
-			userRecords.UserRecords = append(userRecords.UserRecords, userRecord)
-			users.Users = append(users.Users, user)
+			// // Debug
+			// log.Println("User Record", userRecord)
+			// log.Println("User", user)
+			// log.Println("Card", card)
+			// log.Println("Loop", i)
+		}
+		
+		// If there are users / cards, insert them into the DB and commit
+		if len(users.Users) != 0 {
+			log.Println("Appending Users, Len =", len(users.Users))
+			collections.CreateUsers(users)
 		}
 
-		// // If there are transactions, insert them into the DB and commit
-		// if len(userRecords.UserRecords) != 0 {
-		// 	// collections.CreateTransactions(transactions)
-		// 	log.Println("Committing", userRecords.UserRecords)
-		// 	consumer.Commit()
-		// }
+		if len(cards.Cards) != 0 {
+			log.Println("Appending Cards, Len =", len(cards.Cards))
+			collections.CreateCards(cards)
+		}
 
+		if len(cards.Cards) != 0 || len(users.Users) != 0 {
+			consumer.Commit()
+		}
 	}
 }
 
