@@ -6,7 +6,6 @@ import (
 )
 
 func getExchangeRate(currency string) float64 {
-	// TODO: Implement an exchange rate getter
 	if currency == "SGD" {
 		return 1.0
 	}
@@ -57,10 +56,6 @@ func calculatePoints(transaction *models.Transaction, amountSpent float64) {
 
 	// MCC code categorization
 	var ONLINE_SHOPPING = []int{5999, 5964, 5691, 5311, 5411, 5399, 5815, 5816, 5817, 5818}
-	// var SHOPPING = []int{
-	// 	4816, 5045, 5262, 5309, 5310, 5311, 5331, 5399, 5611, 5621, 5631, 5641, 5651, 5655, 5661, 
-	// 	5691, 5699, 5732, 5733, 5734, 5735, 5912, 5942, 5944, 5945, 5946, 5947, 5948, 5949, 5964, 
-	// 	5965, 5966, 5967, 5968, 5969, 5970, 5992, 5999, 5621, 5631}
 
 	mcc, _ := strconv.Atoi(transaction.MCC)
 
