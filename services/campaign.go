@@ -17,8 +17,8 @@ func ApplyApplicableCampaign(transaction *models.Transaction)  {
 
 	amountSpent := transaction.Amount * getExchangeRate(transaction.Currency)
 
-	// Retrieve all campaigns
-	allCampaigns, _ := collections.RetrieveAllCampaigns()
+	// Retrieve all ACTIVE campaigns
+	allCampaigns, _ := collections.RetrieveActiveCampaigns(transaction.TransactionDate)
 
 	var bonus float64 = 0
 
@@ -58,7 +58,7 @@ func isApplicable(campaign models.Campaign, transaction *models.Transaction) boo
 		return false
 	}
 
-	// TODO: Check for applicable spend type (mcc)
+	// Check for applicable spend type (mcc)
 	mcc, _ := strconv.Atoi(transaction.MCC)
 	if !in(campaign.AcceptedMCCs, mcc) {
 		return false

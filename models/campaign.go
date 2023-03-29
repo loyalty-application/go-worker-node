@@ -6,7 +6,7 @@ type CampaignList struct {
 
 type Campaign struct {
 	// TODO: should have on merchantId
-	UserId       string  `json:"-" bson:"user_id" example:"6400a..."`
+	UserId       string  `json:"user_id" bson:"user_id" example:"6400a..."`
 	CampaignId   string  `json:"campaign_id" bson:"campaign_id" example:"cmp00001"`
 	Merchant     string  `json:"merchant" bson:"merchant" example:"7-11"`
 	CardType     string  `json:"card_type" bson:"card_type" example:"super_miles_card"`
