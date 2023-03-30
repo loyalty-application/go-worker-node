@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"log"
 	"time"
@@ -12,11 +14,11 @@ func GetUserFromRecord(userRecord models.UserRecord) (result models.User, err er
 
 	// create new user
 	result = models.User{
-		UserID: &userRecord.Id,
+		UserID:    &userRecord.Id,
 		FirstName: &userRecord.FirstName,
-		LastName: &userRecord.LastName,
-		Email: &userRecord.Email,
-		Phone: &userRecord.Phone,
+		LastName:  &userRecord.LastName,
+		Email:     &userRecord.Email,
+		Phone:     &userRecord.Phone,
 	}
 
 	// Convert CreatedAt and UpdatedAt to time.Time
@@ -43,7 +45,7 @@ func GetUserFromRecord(userRecord models.UserRecord) (result models.User, err er
 
 func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err error) {
 	// cardId := userRecord.CardId
-	
+
 	// // Check if card with card id already exists
 	// if card, err := collections.RetrieveSpecificCard(cardId); err != mongo.ErrNoDocuments {
 	// 	log.Println("Card already exists")
@@ -59,7 +61,7 @@ func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err er
 		}
 	}
 
-	if (!isValidCardType) {
+	if !isValidCardType {
 		log.Println("Invalid Card Type")
 		err = errors.New("Invalid Card Type")
 		return result, err
@@ -67,13 +69,21 @@ func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err er
 
 	// Create card if card doesn't exist
 	result = models.Card{
-		CardId: userRecord.CardId,
-		UserId: userRecord.Id,
-		CardPan: userRecord.CardPan,
-		CardType: userRecord.CardType,
+		CardId:    userRecord.CardId,
+		UserId:    userRecord.Id,
+		CardPan:   userRecord.CardPan,
+		CardType:  userRecord.CardType,
 		ValueType: ProcessCardType(userRecord.CardType),
-		Value: 0,
+		Value:     0,
 	}
+
+	result.ShortCardPan = userRecord.CardPan[len(userRecord.CardPan)-4:]
+
+	hash := sha256.Sum256([]byte(userRecord.CardPan))
+	hashBytes := hash[:]
+	hashString := hex.EncodeToString(hashBytes)
+
+	result.CardPan = hashString
 
 	// // Store into database
 	// _, err = collections.CreateCard(result)

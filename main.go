@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 	"time"
-	
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/loyalty-application/go-worker-node/models"
-	"github.com/loyalty-application/go-worker-node/config"
-	"github.com/loyalty-application/go-worker-node/services"
 	"github.com/loyalty-application/go-worker-node/collections"
+	"github.com/loyalty-application/go-worker-node/config"
+	"github.com/loyalty-application/go-worker-node/models"
+	"github.com/loyalty-application/go-worker-node/services"
 )
 
 func main() {
@@ -55,17 +55,21 @@ func processUsers(consumer *kafka.Consumer) {
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
-			
-			if err != nil { break }
+
+			if err != nil {
+				break
+			}
 
 			var userRecord models.UserRecord
 			json.Unmarshal(msg.Value, &userRecord)
 			user, err := services.GetUserFromRecord(userRecord)
 
+			
+
 			if err == nil {
 				users.Users = append(users.Users, user)
 			}
-			
+
 			card, err := services.GetCardFromRecord(userRecord)
 			if err == nil {
 				// log.Println("Card =", card)
@@ -78,7 +82,7 @@ func processUsers(consumer *kafka.Consumer) {
 			// log.Println("Card", card)
 			// log.Println("Loop", i)
 		}
-		
+
 		// If there are users / cards, insert them into the DB and commit
 		if len(users.Users) != 0 {
 			log.Println("Appending Users, Len =", len(users.Users))
@@ -103,7 +107,7 @@ func processTransactions(consumer *kafka.Consumer) {
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
-			
+
 			if err != nil {
 				break
 			}
@@ -113,7 +117,7 @@ func processTransactions(consumer *kafka.Consumer) {
 
 			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
-			log.Println(transaction)  // DEBUG
+			log.Println(transaction) // DEBUG
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
@@ -127,7 +131,7 @@ func processTransactions(consumer *kafka.Consumer) {
 
 func getKafkaConsumer() (consumer *kafka.Consumer, err error) {
 	server := os.Getenv("KAFKA_BOOTSTRAP_SERVER")
-	
+
 	return kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        server,
 		"group.id":                 "FtpWorkerGroup",
