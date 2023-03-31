@@ -100,6 +100,7 @@ func processTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
+		cardSet := map[string]struct{}{}
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
@@ -113,13 +114,30 @@ func processTransactions(consumer *kafka.Consumer) {
 
 			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
-			log.Println(transaction)  // DEBUG
+			
+			// Add cardId used to set
+			cardSet[transaction.CardId] = struct{}{}
+
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
 		// If there are transactions, insert them into the DB and commit
 		if len(transactions.Transactions) != 0 {
+			// Commit transaction
 			collections.CreateTransactions(transactions)
+
+			// Convert set of cards to slice of cards
+			cardIdList := make([]string, 0)
+			for cardId, _ := range cardSet {
+				cardIdList = append(cardIdList, cardId)
+			}
+			log.Println("Card Id List =", cardIdList)
+
+			// Update card points after committing transactions
+			// TODO Add aggregation pipeline to calculating card points
+			// TODO Add logic to create card with just id field if card doesn't exist
+
+
 			consumer.Commit()
 		}
 	}
