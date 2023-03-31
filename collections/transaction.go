@@ -1,18 +1,19 @@
 package collections
 
 import (
-	"log"
 	"context"
+	"log"
 	"time"
 
-	"github.com/loyalty-application/go-worker-node/models"
 	"github.com/loyalty-application/go-worker-node/config"
+	"github.com/loyalty-application/go-worker-node/models"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var transactionsCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
+var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
@@ -34,11 +35,51 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	// will continue to process remaining write operations in the list.
 	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
 	// log.Println("Bulk Writing", models)
-	result, err = transactionsCollection.BulkWrite(ctx, models, bulkWriteOptions)
+	result, err = transactionCollection.BulkWrite(ctx, models, bulkWriteOptions)
     if err != nil && !mongo.IsDuplicateKeyError(err) {
         log.Println(err.Error())
 		return result, err
     }
 
 	return result, err
+}
+
+func RetrieveCardValuesFromTransaction(cardId string) (result float64, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pipeline := []bson.M{
+		{"$match": bson.M{"card_id": cardId}},
+		{"$group": bson.M{
+			"_id": nil,
+			"totalPoints": bson.M{"$sum": "$points"},
+			"totalMiles": bson.M{"$sum": "$miles"},
+			"totalCashback": bson.M{"$sum": "$cash_back"},
+		}},
+	}
+	
+	cursor, err := transactionCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Println(err.Error())
+		return result, err
+	}
+	
+	var temp struct {
+		TotalPoints   float64 `bson:"totalPoints"`
+		TotalMiles    float64 `bson:"totalMiles"`
+		TotalCashback float64 `bson:"totalCashback"`
+	}
+
+	if cursor.Next(context.Background()) {
+        
+		if err = cursor.Decode(&temp); err != nil {
+			log.Println(err.Error())
+			return result, err
+		}
+	}
+
+	result += temp.TotalCashback + temp.TotalMiles + temp.TotalPoints
+
+	return result, err
+
 }

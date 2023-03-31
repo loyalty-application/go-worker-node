@@ -133,10 +133,8 @@ func processTransactions(consumer *kafka.Consumer) {
 			}
 			log.Println("Card Id List =", cardIdList)
 
-			// Update card points after committing transactions
-			// TODO Add aggregation pipeline to calculating card points
-			// TODO Add logic to create card with just id field if card doesn't exist
-
+			// Update card points after committing transactions (Upsert if necessary)
+			services.UpdateCardValues(cardIdList)
 
 			consumer.Commit()
 		}

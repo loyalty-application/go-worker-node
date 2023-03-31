@@ -4,10 +4,22 @@ import (
 	"errors"
 	"log"
 
+	"github.com/loyalty-application/go-worker-node/collections"
 	"github.com/loyalty-application/go-worker-node/models"
 )
 
+func UpdateCardValues(cardIdList []string) {
 
+	// key = cardId, value = points / miles / cashback
+	cardMap := make(map[string]float64)
+	for _, cardId := range cardIdList {
+		temp, _ := collections.RetrieveCardValuesFromTransaction(cardId)
+		cardMap[cardId] = temp
+	}
+	log.Println("Card Map =", cardMap)
+
+	collections.UpdateCardValues(cardMap)
+}
 
 func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err error) {
 	// cardId := userRecord.CardId
@@ -57,11 +69,11 @@ func ProcessCardType(str string) string {
 
 	switch str {
 	case "scis_freedom":
-		return "Points"
+		return "Cashback"
 	case "scis_premiummiles", "scis_platinummiles":
 		return "Miles"
 	case "scis_shopping":
-		return "Cashback"
+		return "Points"
 	default:
 		return "Error"
 	}

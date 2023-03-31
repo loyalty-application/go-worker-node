@@ -61,3 +61,28 @@ func CreateCards(cards models.CardList) (result interface{}, err error) {
 	return result, err
 
 }
+
+func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	models := make([]mongo.WriteModel, 0)
+	for cardId, value := range cardMap {
+		update := bson.D{{"$set", bson.D{{"value", value}}}}
+
+		upsert := mongo.NewUpdateOneModel().SetFilter(bson.M{"card_id":cardId}).SetUpdate(update).SetUpsert(true)
+
+		models = append(models, upsert)
+	}
+
+	// Create a new bulk write options instance
+	opts := options.BulkWrite().SetOrdered(false)
+
+	// Execute the bulk write operation with the writes array and options
+	result, err = cardCollection.BulkWrite(ctx, models, opts)
+	if err != nil {
+		log.Println("Error =", err.Error())
+	}
+
+	return result, err
+}
