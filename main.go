@@ -84,6 +84,7 @@ func processUsers(consumer *kafka.Consumer) {
 		}
 
 		// If there are users / cards, insert them into the DB and commit
+		// TODO Implement Goroutines here
 		if len(users.Users) != 0 {
 			log.Println("Appending Users, Len =", len(users.Users))
 			collections.CreateUsers(users)
@@ -138,6 +139,7 @@ func processTransactions(consumer *kafka.Consumer) {
 			log.Println("Card Id List =", cardIdList)
 
 			// Update card points after committing transactions (Upsert if necessary)
+			// TODO Implement Goroutines here
 			services.UpdateCardValues(cardIdList)
 
 			consumer.Commit()

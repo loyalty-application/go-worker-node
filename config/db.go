@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -92,7 +93,83 @@ func DBinstance() (client *mongo.Client) {
 	}
 	fmt.Println("Success!")
 
+	fmt.Println("Initialising indexes ...")
+	// initialise indexes
+	InitIndexes(client)
+	fmt.Println("Success!")
 	return client
+}
+
+func InitIndexes(client *mongo.Client) {
+
+	// transactions_transactions_-1 index
+	transactionCollection := OpenCollection(client, "transactions")
+
+	transactionIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "transaction_id", Value: -1}},
+		Options: options.Index().SetUnique(true),
+	}
+	transactionIndexCreated, err := transactionCollection.Indexes().CreateOne(context.Background(), transactionIndexModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// unprocessed_unprocessed-1 index
+	unprocessedCollection := OpenCollection(client, "unprocessed")
+
+	unprocessedIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "transaction_id", Value: -1}},
+		Options: options.Index().SetUnique(true),
+	}
+	unprocessedIndexCreated, err := unprocessedCollection.Indexes().CreateOne(context.Background(), unprocessedIndexModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// campaigns_campaigns_-1 index
+	campaignCollection := OpenCollection(client, "campaigns")
+
+	campaignIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "campaign_id", Value: -1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	campaignIndexCreated, err := campaignCollection.Indexes().CreateOne(context.Background(), campaignIndexModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// cards_cards_-1 index
+	cardCollection := OpenCollection(client, "cards")
+
+	cardIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "card_id", Value: -1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	cardIndexCreated, err := cardCollection.Indexes().CreateOne(context.Background(), cardIndexModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// user_users_-1 index
+	userCollection := OpenCollection(client, "users")
+
+	userIndexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "user_id", Value: -1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	userIndexCreated, err := userCollection.Indexes().CreateOne(context.Background(), userIndexModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Created Transaction Index %s\n", transactionIndexCreated)
+	fmt.Printf("Created Unprocessed Index %s\n", unprocessedIndexCreated)
+	fmt.Printf("Created Campaign Index %s\n", campaignIndexCreated)
+	fmt.Printf("Created Card Index %s\n", cardIndexCreated)
+	fmt.Printf("Created User Index %s\n", userIndexCreated)
 }
 
 func OpenCollection(client *mongo.Client, collectionName string) *mongo.Collection {
