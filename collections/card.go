@@ -43,9 +43,9 @@ func CreateCards(cards []models.Card) (result interface{}, err error) {
 		update := bson.D{{"$set", bson.D{{"card_pan", card.CardPan},
 										{"card_type", card.CardType},
 										{"value_type", card.ValueType},
-										{"shoart_card_pan,", card.ShortCardPan},
-										{"user_id", card.UserId},
-										{"value", card.Value}}}}
+										{"short_card_pan,", card.ShortCardPan},
+										{"user_id", card.UserId}}},
+						 {"$max", bson.D{{"value", card.Value}}}}
 
 		upsert := mongo.NewUpdateOneModel().SetFilter(bson.M{"card_id":card.CardId}).SetUpdate(update).SetUpsert(true)
 
