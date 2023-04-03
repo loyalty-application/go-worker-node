@@ -18,7 +18,6 @@ func UpdateCardValues(cardIdList []string) {
 		temp, _ := collections.RetrieveCardValuesFromTransaction(cardId)
 		cardMap[cardId] = temp
 	}
-	log.Println("Card Map =", cardMap)
 
 	collections.UpdateCardValues(cardMap)
 }

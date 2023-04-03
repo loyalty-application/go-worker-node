@@ -67,6 +67,7 @@ func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult
 	defer cancel()
 
 	models := make([]mongo.WriteModel, 0)
+	log.Println("Before Making Model")
 	for cardId, value := range cardMap {
 		update := bson.D{{"$set", bson.D{{"value", value}}}}
 
@@ -74,6 +75,7 @@ func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult
 
 		models = append(models, upsert)
 	}
+	log.Println("After Making Model")
 
 	// Create a new bulk write options instance
 	opts := options.BulkWrite().SetOrdered(false)

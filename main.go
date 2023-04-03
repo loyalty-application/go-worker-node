@@ -105,7 +105,10 @@ func processTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
-		cardSet := map[string]struct{}{}
+		// cardSet := map[string]struct{}{}
+
+		// key = cardId, value = points / miles / cashback
+		cardMap := make(map[string]float64)
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
@@ -120,8 +123,11 @@ func processTransactions(consumer *kafka.Consumer) {
 			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
 			
-			// Add cardId used to set
-			cardSet[transaction.CardId] = struct{}{}
+			// // Add cardId used to set
+			// cardSet[transaction.CardId] = struct{}{}
+
+			// Update CardMap
+			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
@@ -131,16 +137,20 @@ func processTransactions(consumer *kafka.Consumer) {
 			// Commit transaction
 			collections.CreateTransactions(transactions)
 
-			// Convert set of cards to slice of cards
-			cardIdList := make([]string, 0)
-			for cardId, _ := range cardSet {
-				cardIdList = append(cardIdList, cardId)
-			}
-			log.Println("Card Id List =", cardIdList)
+			// // Convert set of cards to slice of cards
+			// cardIdList := make([]string, len(cardSet))
+			// i := 0
+			// for cardId := range cardSet {
+			// 	cardIdList[i] = cardId
+			// 	i++
+			// }
+			// log.Println("Card Id List =", cardIdList)
+
+			log.Println("Card Map =", cardMap)
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			services.UpdateCardValues(cardIdList)
+			collections.UpdateCardValues(cardMap)
 
 			consumer.Commit()
 		}
