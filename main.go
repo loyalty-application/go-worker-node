@@ -39,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("world consuming ... !! Type =", topic)
+	log.Println("hi consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" || workerType == "resttransactions" {
@@ -92,7 +92,7 @@ func processUsers(consumer *kafka.Consumer) {
 
 		if len(cards.Cards) != 0 {
 			log.Println("Appending Cards, Len =", len(cards.Cards))
-			collections.CreateCards(cards)
+			collections.CreateCards(cards.Cards)
 		}
 
 		if len(cards.Cards) != 0 || len(users.Users) != 0 {
@@ -137,19 +137,9 @@ func processTransactions(consumer *kafka.Consumer) {
 			// Commit transaction
 			collections.CreateTransactions(transactions)
 
-			// // Convert set of cards to slice of cards
-			// cardIdList := make([]string, len(cardSet))
-			// i := 0
-			// for cardId := range cardSet {
-			// 	cardIdList[i] = cardId
-			// 	i++
-			// }
-			// log.Println("Card Id List =", cardIdList)
-
-			log.Println("Card Map =", cardMap)
-
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
+			log.Println("Card Map =", cardMap)
 			collections.UpdateCardValues(cardMap)
 
 			consumer.Commit()
