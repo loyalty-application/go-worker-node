@@ -39,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("world consuming ... !! Type =", topic)
+	log.Println("HELLO consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" || workerType == "resttransactions" {
@@ -120,37 +120,27 @@ func processTransactions(consumer *kafka.Consumer) {
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
 
-			// Convert spending amount to respective point-type
-			services.ConvertPoints(&transaction)
-			
-			// // Add cardId used to set
-			// cardSet[transaction.CardId] = struct{}{}
+			// Only apply points conversion for valid transaction
+			if services.IsValidTransaction(&transaction) {
+				services.ConvertPoints(&transaction)  
 
-			// Update CardMap
-			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
+				// Update CardMap
+				cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
+			}
+
+			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
 
 		// If there are transactions, insert them into the DB and commit
 		if len(transactions.Transactions) != 0 {
-			// Commit transaction
+
 			collections.CreateTransactions(transactions)
-
-			// // Convert set of cards to slice of cards
-			// cardIdList := make([]string, len(cardSet))
-			// i := 0
-			// for cardId := range cardSet {
-			// 	cardIdList[i] = cardId
-			// 	i++
-			// }
-			// log.Println("Card Id List =", cardIdList)
-
-			log.Println("Card Map =", cardMap)
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			collections.UpdateCardValues(cardMap)
+			// collections.UpdateCardValues(cardMap)
 
 			consumer.Commit()
 		}

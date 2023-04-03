@@ -7,10 +7,6 @@ import (
 	"github.com/loyalty-application/go-worker-node/collections"
 )
 
-// CURRENTLY ASSUMING THAT CAMPAIGN IS ACTIVE
-// WAITING ON @sean to CREATE NEW METHOD TO
-// RETRIEVE ONLY ACTIVE CAMPAIGNS
-
 
 // Return the campaign that is applicable to the user, else return nil
 func ApplyApplicableCampaign(transaction *models.Transaction)  {

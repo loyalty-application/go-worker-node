@@ -24,6 +24,19 @@ func in(arr []int, target int) bool {
 }
 
 
+func IsValidTransaction(transaction *models.Transaction) bool {
+
+	// Check for invalid or empty MCC
+	if transaction.MCC == "0" || transaction.MCC == "" {
+		return false;
+	}
+
+	// ADD MORE CHECKS HERE (IF ANY)
+
+	return true
+}
+
+
 func ConvertPoints(transaction *models.Transaction) {
 
 	var EXCLUDED_MCCS = []int{6051, 9399, 6540}
@@ -110,4 +123,16 @@ func calculateMiles(transaction *models.Transaction, amountSpent float64) {
 		milesConversionRate = 3
 	}
 	transaction.Miles = amountSpent * milesConversionRate
+}
+
+
+
+
+/* 
+	THE FOLLOWING IS THE TIERED IMPLEMENTATION
+	TODO: Clarify if we want to swap over, or give a choice of both!
+*/
+
+func tieredCalculateCashback(transaction *models.Transaction, amount float64) {
+	
 }
