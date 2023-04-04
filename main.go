@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
+	// "math/rand"
 	"os"
 	"time"
 
@@ -40,11 +40,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("HELLO consuming ... !! Type =", topic)
+	log.Println("water consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
-	} else if workerType == "transactions" || workerType == "resttransactions" {
-		processTransactions(consumer)
+	} else if workerType == "transactions" {
+		processFtpTransactions(consumer)
+	} else if workerType == "resttransactions" {
+		processRestTransactions(consumer)
 	}
 }
 
@@ -102,7 +104,7 @@ func processUsers(consumer *kafka.Consumer) {
 	}
 }
 
-func processTransactions(consumer *kafka.Consumer) {
+func processFtpTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
@@ -129,11 +131,12 @@ func processTransactions(consumer *kafka.Consumer) {
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
-			// Send email notification
-			if rand.Intn(5000) == 1 {
-				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
-																				 Message: "Hello World",})
-			}
+			// TODO Add Campaign Message + Applicable Campaign
+			// // Send email notification
+			// if rand.Intn(5000) == 1 {
+			// 	notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+			// 																	 Message: "Hello World",})
+			// }
 
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
@@ -143,6 +146,76 @@ func processTransactions(consumer *kafka.Consumer) {
 		if len(transactions.Transactions) != 0 {
 			// Commit transaction
 			collections.CreateTransactions(transactions)
+
+			// Update card points after committing transactions (Upsert if necessary)
+			// TODO Implement Goroutines here
+			// log.Println("Card Map =", cardMap)
+			collections.UpdateCardValues(cardMap)
+
+			// Send email notification, if any
+			log.Println(notificationList)
+			services.SendNotification(notificationList)
+
+			consumer.Commit()
+		}
+	}
+}
+
+func processRestTransactions(consumer *kafka.Consumer) {
+
+	for {
+		var transactions models.TransactionList
+
+		// key = cardId, value = points / miles / cashback
+		cardMap := make(map[string]float64)
+
+		notificationList := make([]models.Notification, 0)
+
+		transactionIdList := make([]string, 0)
+
+		for i := 0; i < 20000; i++ {
+			msg, err := consumer.ReadMessage(time.Second)
+
+			if err != nil {
+				break
+			}
+
+			var transaction models.Transaction
+			json.Unmarshal(msg.Value, &transaction)
+
+			// Only apply points conversion for valid transaction
+			if services.IsValidTransaction(&transaction) {
+				services.ConvertPoints(&transaction)  
+			}
+			// Update CardMap
+			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
+
+			// TODO Add Campaign Message + Applicable Campaign
+			// // Send email notification
+			// if rand.Intn(5000) == 1 {
+			// 	notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+			// 																	 Message: "Hello World",})
+			// }
+
+			// Add transaction into regardless of validity
+			transactions.Transactions = append(transactions.Transactions, transaction)
+
+			// Add transaction into list
+			transactionIdList = append(transactionIdList, transaction.TransactionId)
+		}
+
+		// If there are transactions, insert them into the DB and commit
+		if len(transactions.Transactions) != 0 {
+			// Commit transaction
+			collections.CreateTransactions(transactions)
+
+			// Delete from unprocessed collection
+			result, err := collections.DeleteUnprocessedByTransactionId(transactionIdList)
+			if err != nil {
+				log.Println("Delete from Unprocessed Error:", err.Error())
+			} else {
+				log.Println("Deleted:", result.DeletedCount)
+			}
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
