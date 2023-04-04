@@ -46,7 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("HELLO consuming ... !! Type =", topic)
+	log.Println("HELLO 2 consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" || workerType == "resttransactions" {

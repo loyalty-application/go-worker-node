@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type TransactionList struct {
 	Transactions []Transaction `json:"transactions" bson:",inline"`
@@ -21,4 +23,5 @@ type Transaction struct {
 	Points          float64   `json:"points" bson:"points" example:"4.5"`
 	Miles           float64   `json:"miles" bson:"miles" example:"10.1"`
 	CashBack        float64   `json:"cash_back" bson:"cash_back" example:"30.45"`
+	CampaignApplied *Campaign `json:"campaign_applied" bson:"campaign_applied" example:""`
 }

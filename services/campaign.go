@@ -24,6 +24,10 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 			campaignBonus := campaign.BonusRates * amountSpent
 			if campaignBonus > bonus {
 				bonus = campaignBonus
+
+				// PROBLEMATIC: Using pointer leads to incorrect attachment
+				transaction.CampaignApplied = &campaign
+				fmt.Println("Assigned to campaign:", campaign)
 			}
 		}
 	}
@@ -42,6 +46,10 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 // Takes in a campaign and a transaction, returns true if the campaign is
 // applicable to the transaction, else false
 func isApplicable(campaign models.Campaign, transaction *models.Transaction) bool {
+	// DEBUG
+	fmt.Println("Campaign CT:", campaign.CardType)
+	fmt.Println("Trans CT   :", transaction.CardType)
+
 	// Check for matching card type
 	if campaign.CardType != transaction.CardType {
 		return false
