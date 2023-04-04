@@ -152,7 +152,7 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 																					Message: message,})
 				}
 			}
-			
+
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
@@ -201,10 +201,22 @@ func processRestTransactions(consumer *kafka.Consumer) {
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
 
+
 			// Only apply points conversion for valid transaction
 			if services.IsValidTransaction(&transaction) {
-				services.ConvertPoints(&transaction)  
+				services.ConvertPoints(&transaction)
+				
+				// Apply applicable campaigns
+				campaign, hasCampaign := services.ApplyApplicableCampaign(&transaction, allCampaigns)
+
+				// Create email notification
+				if hasCampaign {
+					message := "Hi, you have successfully qualified for a Campaign by " + campaign.Merchant + ". Campaign's description" + campaign.Description
+					notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																					Message: message,})
+				}
 			}
+			
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
