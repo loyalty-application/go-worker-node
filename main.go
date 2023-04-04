@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -92,7 +93,7 @@ func processUsers(consumer *kafka.Consumer) {
 
 		if len(cards.Cards) != 0 {
 			log.Println("Appending Cards, Len =", len(cards.Cards))
-			collections.CreateCards(cards)
+			collections.CreateCards(cards.Cards)
 		}
 
 		if len(cards.Cards) != 0 || len(users.Users) != 0 {
@@ -105,10 +106,11 @@ func processTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
-		// cardSet := map[string]struct{}{}
 
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
+
+		notificationList := make([]models.Notification, 0)
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
@@ -123,10 +125,14 @@ func processTransactions(consumer *kafka.Consumer) {
 			// Only apply points conversion for valid transaction
 			if services.IsValidTransaction(&transaction) {
 				services.ConvertPoints(&transaction)  
+			}
+			// Update CardMap
+			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
-				// Update CardMap
-				cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
-
+			// Send email notification
+			if rand.Intn(5000) == 1 {
+				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																				 Message: "Hello World",})
 			}
 
 			// Add transaction into regardless of validity
@@ -135,12 +141,17 @@ func processTransactions(consumer *kafka.Consumer) {
 
 		// If there are transactions, insert them into the DB and commit
 		if len(transactions.Transactions) != 0 {
-
+			// Commit transaction
 			collections.CreateTransactions(transactions)
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			// collections.UpdateCardValues(cardMap)
+			// log.Println("Card Map =", cardMap)
+			collections.UpdateCardValues(cardMap)
+
+			// Send email notification, if any
+			log.Println(notificationList)
+			services.SendNotification(notificationList)
 
 			consumer.Commit()
 		}

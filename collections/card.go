@@ -33,21 +33,23 @@ func CreateCard(card models.Card) (result *mongo.InsertOneResult, err error) {
 	return result, err
 }
 
-func CreateCards(cards models.CardList) (result interface{}, err error) {
+func CreateCards(cards []models.Card) (result interface{}, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
-	// convert from slice of struct to slice of interface
-	t := make([]interface{}, len(cards.Cards))
-	for i, v := range cards.Cards {
-		t[i] = v
-	}
-
 	// convert from slice of interface to mongo's bulkWrite model
 	models := make([]mongo.WriteModel, 0)
-	for _, doc := range t {
-		// log.Println("Doc =",doc)
-		models = append(models, mongo.NewInsertOneModel().SetDocument(doc))
+	for _, card := range cards {
+		update := bson.D{{"$set", bson.D{{"card_pan", card.CardPan},
+										{"card_type", card.CardType},
+										{"value_type", card.ValueType},
+										{"short_card_pan,", card.ShortCardPan},
+										{"user_id", card.UserId}}},
+						 {"$max", bson.D{{"value", card.Value}}}}
+
+		upsert := mongo.NewUpdateOneModel().SetFilter(bson.M{"card_id":card.CardId}).SetUpdate(update).SetUpsert(true)
+
+		models = append(models, upsert)
 	}
 	
 	// If an error occurs during the processing of one of the write operations, MongoDB
@@ -67,15 +69,15 @@ func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult
 	defer cancel()
 
 	models := make([]mongo.WriteModel, 0)
-	log.Println("Before Making Model")
+	log.Println("Update: Before Making Model")
 	for cardId, value := range cardMap {
-		update := bson.D{{"$set", bson.D{{"value", value}}}}
+		update := bson.D{{"$inc", bson.D{{"value", value}}}}
 
 		upsert := mongo.NewUpdateOneModel().SetFilter(bson.M{"card_id":cardId}).SetUpdate(update).SetUpsert(true)
 
 		models = append(models, upsert)
 	}
-	log.Println("After Making Model")
+	log.Println("Update: After Making Model")
 
 	// Create a new bulk write options instance
 	opts := options.BulkWrite().SetOrdered(false)
@@ -87,4 +89,49 @@ func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult
 	}
 
 	return result, err
+}
+
+func RetrieveEmailFromCard(cardId string) (email string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	pipeline := []bson.M{
+        bson.M{
+            "$match": bson.M{"card_id": cardId},
+        },
+        bson.M{
+            "$lookup": bson.M{
+                "from":         userCollection.Name(),
+                "localField":   "user_id",
+                "foreignField": "user_id",
+                "as":           "user",
+            },
+        },
+        bson.M{
+            "$project": bson.M{
+                "_id":    0,
+                "email": bson.M{"$arrayElemAt": []interface{}{"$user.email", 0}},
+            },
+        },
+    }
+
+    cursor, err := cardCollection.Aggregate(ctx, pipeline)
+    if err != nil {
+        return "", err
+    }
+
+    var result struct {
+        Email string `bson:"email"`
+    }
+
+    if cursor.Next(ctx) {
+        err = cursor.Decode(&result)
+        if err != nil {
+            return "", err
+        }
+    } else {
+        return "", mongo.ErrNoDocuments
+    }
+
+	return result.Email, err
 }
