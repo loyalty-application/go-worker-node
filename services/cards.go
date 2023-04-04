@@ -23,13 +23,6 @@ func UpdateCardValues(cardIdList []string) {
 }
 
 func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err error) {
-	// cardId := userRecord.CardId
-
-	// // Check if card with card id already exists
-	// if card, err := collections.RetrieveSpecificCard(cardId); err != mongo.ErrNoDocuments {
-	// 	log.Println("Card already exists")
-	// 	return card, err
-	// }
 
 	// Validate card type
 	isValidCardType := false
@@ -70,6 +63,14 @@ func GetCardFromRecord(userRecord models.UserRecord) (result models.Card, err er
 	// }
 
 	return result, err
+}
+
+func HashCardPan(cardPan string) (hashedCardPan string) {
+	hash := sha256.Sum256([]byte(cardPan))
+	hashBytes := hash[:]
+	hashedCardPan = hex.EncodeToString(hashBytes)
+
+	return hashedCardPan
 }
 
 // return type of card

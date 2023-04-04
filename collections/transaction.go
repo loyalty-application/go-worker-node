@@ -35,7 +35,6 @@ func CreateTransactions(transactions models.TransactionList) (result interface{}
 	// If an error occurs during the processing of one of the write operations, MongoDB
 	// will continue to process remaining write operations in the list.
 	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
-	// log.Println("Bulk Writing", models)
 	result, err = transactionCollection.BulkWrite(ctx, models, bulkWriteOptions)
     if err != nil && !mongo.IsDuplicateKeyError(err) {
         log.Println(err.Error())

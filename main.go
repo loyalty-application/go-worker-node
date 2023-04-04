@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	// "fmt"
 	"log"
-	"math/rand"
 	"os"
 	"time"
 
@@ -85,11 +83,6 @@ func processUsers(consumer *kafka.Consumer) {
 				cards.Cards = append(cards.Cards, card)
 			}
 
-			// // Debug
-			// log.Println("User Record", userRecord)
-			// log.Println("User", user)
-			// log.Println("Card", card)
-			// log.Println("Loop", i)
 		}
 
 		// If there are users / cards, insert them into the DB and commit
@@ -136,8 +129,6 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
 
-			// log.Println("Inserted", transaction)
-
 			// Only apply points conversion for valid transaction
 			if services.IsValidTransaction(&transaction) {
 				services.ConvertPoints(&transaction)
@@ -156,6 +147,9 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
+			// Hash CardPan
+			transaction.CardPan = services.HashCardPan(transaction.CardPan)
+
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
 		}
@@ -167,13 +161,14 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			// log.Println("Card Map =", cardMap)
 			collections.UpdateCardValues(cardMap)
 
 			// Send email notification, if any
-			log.Println(notificationList)
-			services.SendNotification(notificationList)
+			// log.Println(notificationList)
+			// services.SendNotification(notificationList)
 
+			// Testing
+			log.Println("Processed", len(transactions.Transactions), " transactions")
 			consumer.Commit()
 		}
 	}
@@ -186,6 +181,9 @@ func processRestTransactions(consumer *kafka.Consumer) {
 
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
+
+		// Retrieve All Campaigns
+		allCampaigns, _ := collections.RetrieveAllCampaigns()
 
 		notificationList := make([]models.Notification, 0)
 
@@ -216,16 +214,12 @@ func processRestTransactions(consumer *kafka.Consumer) {
 																					Message: message,})
 				}
 			}
-			
+
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
-			// TODO Add Campaign Message + Applicable Campaign
-			// Send email notification
-			if rand.Intn(5000) == 1 {
-				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
-																				 Message: "Hello World",})
-			}
+			// Hash CardPan
+			transaction.CardPan = services.HashCardPan(transaction.CardPan)
 
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
@@ -249,7 +243,6 @@ func processRestTransactions(consumer *kafka.Consumer) {
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			// log.Println("Card Map =", cardMap)
 			collections.UpdateCardValues(cardMap)
 
 			// Send email notification, if any
