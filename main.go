@@ -120,15 +120,8 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
 
-		// Retrieve all active campaigns (yet to end wrt TODAY)
-		todayDate := time.Now()
-
-		// day := todayDate.Day()
-		// month := int(todayDate.Month())
-		// year := todayDate.Year()
-
-		// todayDateString := fmt.Sprintf("%d/%d/%d", day, month, year)
-		allCampaigns, _ := collections.RetrieveActiveCampaigns(todayDate)
+		// Retrieve all campaigns
+		allCampaigns, _ := collections.RetrieveAllCampaigns()
 		notificationList := make([]models.Notification, 0)
 
 		// Process transactions in batches
@@ -142,7 +135,6 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
-			transaction.DateTime, _ = time.Parse("2/1/2006", transaction.TransactionDate)
 
 			// log.Println("Inserted", transaction)
 

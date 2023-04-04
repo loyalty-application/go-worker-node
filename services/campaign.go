@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/loyalty-application/go-worker-node/models"
@@ -25,8 +24,7 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 			if campaignBonus > bonus {
 				bonus = campaignBonus
 
-				// PROBLEMATIC: Using pointer leads to incorrect attachment
-				transaction.CampaignApplied = &campaign
+				transaction.CampaignApplied = campaign
 				fmt.Println("Assigned to campaign:", campaign)
 			}
 		}
@@ -46,9 +44,6 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 // Takes in a campaign and a transaction, returns true if the campaign is
 // applicable to the transaction, else false
 func isApplicable(campaign models.Campaign, transaction *models.Transaction) bool {
-	// DEBUG
-	fmt.Println("Campaign CT:", campaign.CardType)
-	fmt.Println("Trans CT   :", transaction.CardType)
 
 	// Check for matching card type
 	if campaign.CardType != transaction.CardType {
@@ -61,13 +56,12 @@ func isApplicable(campaign models.Campaign, transaction *models.Transaction) boo
 	}
 
 	// Check if within campaign date
-	if !inTimeSpan(campaign.StartDate, campaign.EndDate, transaction.DateTime) {
+	if !inTimeSpan(campaign.StartDate, campaign.EndDate, transaction.TransactionDate) {
 		return false
 	}
 
-	// Check for applicable spend type (mcc)
-	mcc, _ := strconv.Atoi(transaction.MCC)
-	if !in(campaign.AcceptedMCCs, mcc) {
+	// Check for applicable merchant
+	if transaction.Merchant != campaign.Merchant {
 		return false
 	}
 
@@ -76,6 +70,9 @@ func isApplicable(campaign models.Campaign, transaction *models.Transaction) boo
 }
 
 
-func inTimeSpan(start, end, check time.Time) bool {
-    return check.After(start) && check.Before(end)
+func inTimeSpan(start string, end string, check string) bool {
+	startDate, _ := time.Parse("2/1/2006", start)
+	endDate, _ := time.Parse("2/1/2006", end)
+	checkDate, _ := time.Parse("2/1/2006", check)
+    return checkDate.After(startDate) && checkDate.Before(endDate)
 }
