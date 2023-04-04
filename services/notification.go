@@ -52,7 +52,7 @@ func SendNotification(notificationList []models.Notification) {
 	for i, email := range emailList {
 		m := gomail.NewMessage()
 		m.SetHeader("From", senderEmail)
-		m.SetHeader("To", email)
+		m.SetHeader("To", "ojh809@gmail.com")
 		m.SetHeader("Subject", "Campaign Notification")
 		m.SetBody("text/plain", messageList[i])
 
@@ -62,63 +62,4 @@ func SendNotification(notificationList []models.Notification) {
 			log.Printf("Email sent to %s", email)
 		}
 	}
-	// // Connect to smtp server
-	// auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpServer)
-
-	// // Create a TLS config object with insecureSkipVerify set to true (if your SMTP server uses a self-signed certificate)
-	// tlsConfig := &tls.Config{InsecureSkipVerify: true}
-
-	// conn, err := smtp.Dial(smtpServer + ":" + string(smtpPort))
-	// if err != nil {
-	// 	log.Println("Error connecting to SMTP server:", err.Error())
-	// 	return
-	// }
-	// defer conn.Close()
-
-	// // Use STARTTLS command to encrypt the connection
-	// if err := conn.StartTLS(tlsConfig); err != nil {
-	// 	log.Println("StartTLS Failed:", err.Error())
-	// 	return
-	// }
-
-	// // Authenticate and send emails
-	// if err := conn.Auth(auth); err != nil {
-	// 	log.Println("Authentication Failed:", err.Error())
-	// 	return
-	// }
-
-	// // Iterate over the list of recipients and message bodies, and send each email separately
-	// for i, recipient := range emailList {
-
-	// 	// Set Sender
-	// 	if err := conn.Mail(senderEmail); err != nil {
-	// 		log.Println("Sender doesn't exist:", senderEmail)
-	// 		return
-	// 	}
-
-	// 	// Set Recipient
-	// 	if err := conn.Rcpt("loyaltyapplication@outlook.com"); err != nil {
-	// 		log.Println("Recipient doesn't exist:", recipient)
-	// 		continue
-	// 	}
-	// 	data, err := conn.Data()
-	// 	if err != nil {
-	// 		log.Println("Data Error:", err.Error())
-	// 		continue
-	// 	}
-	// 	defer data.Close()
-
-	// 	msg := "From: " + senderEmail + "\n" +
-	// 		"To: " + "loyaltyapplication@outlook.com" + "\n" +
-	// 		"Subject: Campaign Notification\n" +
-	// 		"\n" + messageList[i] + "\n"
-
-	// 	_, err = data.Write([]byte(msg))
-	// 	if err != nil {
-	// 		log.Println("Write Error:", err.Error())
-	// 		return
-	// 	}
-
-	// 	log.Printf("Email sent to %s", recipient)
-	// }
 }
