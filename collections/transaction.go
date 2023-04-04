@@ -14,6 +14,7 @@ import (
 )
 
 var transactionCollection *mongo.Collection = config.OpenCollection(config.Client, "transactions")
+var unprocessedCollection *mongo.Collection = config.OpenCollection(config.Client, "unprocessed")
 
 func CreateTransactions(transactions models.TransactionList) (result interface{}, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
@@ -81,5 +82,15 @@ func RetrieveCardValuesFromTransaction(cardId string) (result float64, err error
 	result += temp.TotalCashback + temp.TotalMiles + temp.TotalPoints
 
 	return result, err
+}
 
+func DeleteUnprocessedByTransactionId(transactionIdList []string) (result *mongo.DeleteResult, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"transaction_id": bson.M{"$in": transactionIdList}}
+
+	result, err = unprocessedCollection.DeleteMany(ctx, filter)
+
+	return result, err
 }
