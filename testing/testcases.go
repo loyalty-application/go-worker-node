@@ -1,10 +1,8 @@
 package testing
 
 import (
-	"time"
-
-	"github.com/loyalty-application/go-worker-node/models"
 	"github.com/loyalty-application/go-worker-node/collections"
+	"github.com/loyalty-application/go-worker-node/models"
 )
 
 func AddCampaignsTest() {
@@ -13,13 +11,12 @@ func AddCampaignsTest() {
 	acceptedMccs = append(acceptedMccs, 6625)
 	acceptedMccs = append(acceptedMccs, 6626)
 	acceptedMccs = append(acceptedMccs, 3434)
-	startDate, _ := time.Parse("2/1/2006", "1/1/2021")
-	endDate, _ := time.Parse("2/1/2006", "15/4/2023")
 	campaign1 := models.Campaign {
 		CampaignId: "1",
 		CardType: "scis_freedom",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "1/1/2021",
+		EndDate: "15/4/2023",
+		Merchant: "Marquardt  Kassulke and Keeling",
 		MinSpend: 50.0,
 		BonusRates: 0.05,
 		AcceptedMCCs: acceptedMccs,
@@ -28,13 +25,11 @@ func AddCampaignsTest() {
 	acceptedMccs = make([]int, 0)
 	acceptedMccs = append(acceptedMccs, 3000)
 	acceptedMccs = append(acceptedMccs, 3001)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2021")
-	endDate, _ = time.Parse("2/1/2006", "31/3/2023")
 	campaign2 := models.Campaign {
 		CampaignId: "2",
 		CardType: "scis_platinummiles",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2021",
+		EndDate: "31/3/2023",
 		MinSpend: 500.0,
 		BonusRates: 0.1,
 		AcceptedMCCs: acceptedMccs,
@@ -44,13 +39,11 @@ func AddCampaignsTest() {
 	acceptedMccs = append(acceptedMccs, 5000)
 	acceptedMccs = append(acceptedMccs, 5001)
 	acceptedMccs = append(acceptedMccs, 5002)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2021")
-	endDate, _ = time.Parse("2/1/2006", "31/5/2023")
 	campaign3 := models.Campaign {
 		CampaignId: "3",
 		CardType: "scis_shopping",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2021",
+		EndDate: "31/5/2023",
 		MinSpend: 10.0,
 		BonusRates: 0.07,
 		AcceptedMCCs: acceptedMccs,
@@ -60,13 +53,11 @@ func AddCampaignsTest() {
 	acceptedMccs = append(acceptedMccs, 5000)
 	acceptedMccs = append(acceptedMccs, 5001)
 	acceptedMccs = append(acceptedMccs, 5002)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2023")
-	endDate, _ = time.Parse("2/1/2006", "31/5/2023")
 	campaign4 := models.Campaign {
 		CampaignId: "4",
 		CardType: "scis_premiummiles",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2023",
+		EndDate: "31/5/2023",
 		MinSpend: 200.0,
 		BonusRates: 0.17,
 		AcceptedMCCs: acceptedMccs,
@@ -75,13 +66,11 @@ func AddCampaignsTest() {
 	acceptedMccs = make([]int, 0)
 	acceptedMccs = append(acceptedMccs, 3000)
 	acceptedMccs = append(acceptedMccs, 3001)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2022")
-	endDate, _ = time.Parse("2/1/2006", "31/3/2022")
 	campaign5 := models.Campaign {
 		CampaignId: "5",
 		CardType: "scis_platinummiles",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2022",
+		EndDate: "31/3/2022",
 		MinSpend: 1000.0,
 		BonusRates: 0.15,
 		AcceptedMCCs: acceptedMccs,
@@ -90,13 +79,11 @@ func AddCampaignsTest() {
 	acceptedMccs = make([]int, 0)
 	acceptedMccs = append(acceptedMccs, 3000)
 	acceptedMccs = append(acceptedMccs, 3001)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2021")
-	endDate, _ = time.Parse("2/1/2006", "31/7/2023")
 	campaign6 := models.Campaign {
 		CampaignId: "6",
 		CardType: "scis_premiummiles",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2021",
+		EndDate: "31/7/2023",
 		MinSpend: 19.0,
 		BonusRates: 0.15,
 		AcceptedMCCs: acceptedMccs,
@@ -105,13 +92,11 @@ func AddCampaignsTest() {
 	acceptedMccs = make([]int, 0)
 	acceptedMccs = append(acceptedMccs, 3434)
 	acceptedMccs = append(acceptedMccs, 3001)
-	startDate, _ = time.Parse("2/1/2006", "31/1/2021")
-	endDate, _ = time.Parse("2/1/2006", "31/6/2023")
 	campaign7 := models.Campaign {
 		CampaignId: "7",
 		CardType: "scis_premiummiles",
-		StartDate: startDate,
-		EndDate: endDate,
+		StartDate: "31/1/2021",
+		EndDate: "21/6/2023",
 		MinSpend: 15.0,
 		BonusRates: 0.15,
 		AcceptedMCCs: acceptedMccs,
