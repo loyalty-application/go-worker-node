@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	// "fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -98,7 +99,7 @@ func processUsers(consumer *kafka.Consumer) {
 
 		if len(cards.Cards) != 0 {
 			log.Println("Appending Cards, Len =", len(cards.Cards))
-			collections.CreateCards(cards)
+			collections.CreateCards(cards.Cards)
 		}
 
 		if len(cards.Cards) != 0 || len(users.Users) != 0 {
@@ -113,7 +114,6 @@ func processTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
-		// cardSet := map[string]struct{}{}
 
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
@@ -127,9 +127,11 @@ func processTransactions(consumer *kafka.Consumer) {
 
 		// todayDateString := fmt.Sprintf("%d/%d/%d", day, month, year)
 		allCampaigns, _ := collections.RetrieveActiveCampaigns(todayDate)
+		notificationList := make([]models.Notification, 0)
 
 		// Process transactions in batches
 		for i := 0; i < BATCH_SIZE; i++ {
+
 			msg, err := consumer.ReadMessage(time.Second)
 
 			if err != nil {
@@ -148,10 +150,14 @@ func processTransactions(consumer *kafka.Consumer) {
 				
 				// Apply applicable campaigns
 				services.ApplyApplicableCampaign(&transaction, allCampaigns)
+			}
+			// Update CardMap
+			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
-				// Update CardMap
-				cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
-
+			// Send email notification
+			if rand.Intn(5000) == 1 {
+				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																				 Message: "Hello World",})
 			}
 
 			// Add transaction into regardless of validity
@@ -160,12 +166,17 @@ func processTransactions(consumer *kafka.Consumer) {
 
 		// If there are transactions, insert them into the DB and commit
 		if len(transactions.Transactions) != 0 {
-
+			// Commit transaction
 			collections.CreateTransactions(transactions)
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			// collections.UpdateCardValues(cardMap)
+			// log.Println("Card Map =", cardMap)
+			collections.UpdateCardValues(cardMap)
+
+			// Send email notification, if any
+			log.Println(notificationList)
+			services.SendNotification(notificationList)
 
 			consumer.Commit()
 		}

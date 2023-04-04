@@ -46,6 +46,8 @@ func CreateUsers(users models.UserList) (result interface{}, err error) {
 	// convert from slice of struct to slice of interface
 	t := make([]interface{}, len(users.Users))
 	for i, v := range users.Users {
+		userType := "USER"
+		v.UserType = &userType
 		t[i] = v
 	}
 
