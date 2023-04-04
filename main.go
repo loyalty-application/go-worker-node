@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	// "fmt"
 	"log"
-	// "math/rand"
+	"math/rand"
 	"os"
 	"time"
 
@@ -46,7 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("water consuming ... !! Type =", topic)
+	log.Println("im consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" {
@@ -144,7 +144,7 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 			json.Unmarshal(msg.Value, &transaction)
 			transaction.DateTime, _ = time.Parse("2/1/2006", transaction.TransactionDate)
 
-			log.Println("Inserted", transaction)
+			// log.Println("Inserted", transaction)
 
 			// Only apply points conversion for valid transaction
 			if services.IsValidTransaction(&transaction) {
@@ -157,11 +157,11 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
 			// TODO Add Campaign Message + Applicable Campaign
-			// // Send email notification
-			// if rand.Intn(5000) == 1 {
-			// 	notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
-			// 																	 Message: "Hello World",})
-			// }
+			// Send email notification
+			if rand.Intn(5000) == 1 {
+				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																				 Message: "Hello World",})
+			}
 
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
@@ -216,11 +216,11 @@ func processRestTransactions(consumer *kafka.Consumer) {
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
 
 			// TODO Add Campaign Message + Applicable Campaign
-			// // Send email notification
-			// if rand.Intn(5000) == 1 {
-			// 	notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
-			// 																	 Message: "Hello World",})
-			// }
+			// Send email notification
+			if rand.Intn(5000) == 1 {
+				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																				 Message: "Hello World",})
+			}
 
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
