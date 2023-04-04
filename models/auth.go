@@ -47,6 +47,7 @@ type User struct {
 	Phone        *string   `json:"phone" bson:"phone" validate:"required"`
 	Token        *string   `json:"token" bson:"token"`
 	RefreshToken *string   `json:"refresh_token" bson:"refresh_token"`
+	UserType     *string   `json:"user_type" bson:"user_type"`
 	CreatedAt    time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" bson:"updated_at"`
 	Points       float64   `json:"points" bson:"points"`

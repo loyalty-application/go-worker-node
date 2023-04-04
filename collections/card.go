@@ -90,3 +90,48 @@ func UpdateCardValues(cardMap map[string]float64) (result *mongo.BulkWriteResult
 
 	return result, err
 }
+
+func RetrieveEmailFromCard(cardId string) (email string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	pipeline := []bson.M{
+        bson.M{
+            "$match": bson.M{"card_id": cardId},
+        },
+        bson.M{
+            "$lookup": bson.M{
+                "from":         userCollection.Name(),
+                "localField":   "user_id",
+                "foreignField": "user_id",
+                "as":           "user",
+            },
+        },
+        bson.M{
+            "$project": bson.M{
+                "_id":    0,
+                "email": bson.M{"$arrayElemAt": []interface{}{"$user.email", 0}},
+            },
+        },
+    }
+
+    cursor, err := cardCollection.Aggregate(ctx, pipeline)
+    if err != nil {
+        return "", err
+    }
+
+    var result struct {
+        Email string `bson:"email"`
+    }
+
+    if cursor.Next(ctx) {
+        err = cursor.Decode(&result)
+        if err != nil {
+            return "", err
+        }
+    } else {
+        return "", mongo.ErrNoDocuments
+    }
+
+	return result.Email, err
+}

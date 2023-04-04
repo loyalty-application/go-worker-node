@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -39,7 +40,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("hi consuming ... !! Type =", topic)
+	log.Println("sdksks consuming ... !! Type =", topic)
 	if workerType == "users" {
 		processUsers(consumer)
 	} else if workerType == "transactions" || workerType == "resttransactions" {
@@ -105,10 +106,11 @@ func processTransactions(consumer *kafka.Consumer) {
 
 	for {
 		var transactions models.TransactionList
-		// cardSet := map[string]struct{}{}
 
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
+
+		notificationList := make([]models.Notification, 0)
 
 		for i := 0; i < 20000; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
@@ -122,9 +124,11 @@ func processTransactions(consumer *kafka.Consumer) {
 
 			// Convert spending amount to respective point-type
 			services.ConvertPoints(&transaction)
-			
-			// // Add cardId used to set
-			// cardSet[transaction.CardId] = struct{}{}
+
+			if rand.Intn(5000) == 1 {
+				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																				 Message: "Hello World",})
+			}
 
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
@@ -139,8 +143,12 @@ func processTransactions(consumer *kafka.Consumer) {
 
 			// Update card points after committing transactions (Upsert if necessary)
 			// TODO Implement Goroutines here
-			log.Println("Card Map =", cardMap)
+			// log.Println("Card Map =", cardMap)
 			collections.UpdateCardValues(cardMap)
+
+			// Send email notification, if any
+			log.Println(notificationList)
+			services.SendNotification(notificationList)
 
 			consumer.Commit()
 		}
