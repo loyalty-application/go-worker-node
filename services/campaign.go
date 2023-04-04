@@ -10,12 +10,13 @@ import (
 
 // TODO:
 // Return the campaign that is applicable to the user, else return nil
-func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []models.Campaign)  {
+func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []models.Campaign) (result models.Campaign, hasCampaign bool) {
 
 	amountSpent := transaction.Amount * getExchangeRate(transaction.Currency)
 
 	var bonus float64 = 0
 
+	hasCampaign = false
 	// Iterate through campaigns and find the best applicable one
 	for _, campaign := range allCampaigns {
 
@@ -28,6 +29,9 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 				// PROBLEMATIC: Using pointer leads to incorrect attachment
 				transaction.CampaignApplied = &campaign
 				fmt.Println("Assigned to campaign:", campaign)
+
+				hasCampaign = true
+				result = campaign
 			}
 		}
 	}
@@ -40,6 +44,8 @@ func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []mod
 	} else {
 		transaction.Miles += bonus
 	}
+
+	return result, hasCampaign
 }
 
 

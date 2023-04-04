@@ -151,17 +151,18 @@ func processFtpTransactions(consumer *kafka.Consumer) {
 				services.ConvertPoints(&transaction)
 				
 				// Apply applicable campaigns
-				services.ApplyApplicableCampaign(&transaction, allCampaigns)
+				campaign, hasCampaign := services.ApplyApplicableCampaign(&transaction, allCampaigns)
+
+				// Create email notification
+				if hasCampaign {
+					message := "Hi, you have successfully qualified for a Campaign by " + campaign.Merchant + ". Campaign's description" + campaign.Description
+					notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
+																					Message: message,})
+				}
 			}
+			
 			// Update CardMap
 			cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
-
-			// TODO Add Campaign Message + Applicable Campaign
-			// Send email notification
-			if rand.Intn(5000) == 1 {
-				notificationList = append(notificationList, models.Notification{ CardId: transaction.CardId,
-																				 Message: "Hello World",})
-			}
 
 			// Add transaction into regardless of validity
 			transactions.Transactions = append(transactions.Transactions, transaction)
