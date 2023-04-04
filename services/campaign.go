@@ -1,20 +1,18 @@
 package services
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/loyalty-application/go-worker-node/models"
-	"github.com/loyalty-application/go-worker-node/collections"
 )
 
-
+// TODO:
 // Return the campaign that is applicable to the user, else return nil
-func ApplyApplicableCampaign(transaction *models.Transaction)  {
+func ApplyApplicableCampaign(transaction *models.Transaction, allCampaigns []models.Campaign)  {
 
 	amountSpent := transaction.Amount * getExchangeRate(transaction.Currency)
-
-	// Retrieve all ACTIVE campaigns
-	allCampaigns, _ := collections.RetrieveActiveCampaigns(transaction.TransactionDate)
 
 	var bonus float64 = 0
 
@@ -54,11 +52,22 @@ func isApplicable(campaign models.Campaign, transaction *models.Transaction) boo
 		return false
 	}
 
+	// Check if within campaign date
+	if !inTimeSpan(campaign.StartDate, campaign.EndDate, transaction.DateTime) {
+		return false
+	}
+
 	// Check for applicable spend type (mcc)
 	mcc, _ := strconv.Atoi(transaction.MCC)
 	if !in(campaign.AcceptedMCCs, mcc) {
 		return false
 	}
 
+	fmt.Println("Applied", campaign.CampaignId, " to", transaction.Id)
 	return true
+}
+
+
+func inTimeSpan(start, end, check time.Time) bool {
+    return check.After(start) && check.Before(end)
 }

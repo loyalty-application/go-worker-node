@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	// "fmt"
 	"log"
 	"os"
 	"time"
@@ -11,12 +12,17 @@ import (
 	"github.com/loyalty-application/go-worker-node/config"
 	"github.com/loyalty-application/go-worker-node/models"
 	"github.com/loyalty-application/go-worker-node/services"
+	"github.com/loyalty-application/go-worker-node/testing"
 )
 
 func main() {
 
 	// Connect to DB
 	config.DBinstance()
+
+	// TESTING (INSERT CAMPAIGNS)
+	testing.AddCampaignsTest()
+	log.Println("TEST: ADDED CAMPAIGNS")
 
 	// Create a new Kafka Consumer
 	consumer, err := getKafkaConsumer()
@@ -103,6 +109,8 @@ func processUsers(consumer *kafka.Consumer) {
 
 func processTransactions(consumer *kafka.Consumer) {
 
+	const BATCH_SIZE int = 20000
+
 	for {
 		var transactions models.TransactionList
 		// cardSet := map[string]struct{}{}
@@ -110,7 +118,18 @@ func processTransactions(consumer *kafka.Consumer) {
 		// key = cardId, value = points / miles / cashback
 		cardMap := make(map[string]float64)
 
-		for i := 0; i < 20000; i++ {
+		// Retrieve all active campaigns (yet to end wrt TODAY)
+		todayDate := time.Now()
+
+		// day := todayDate.Day()
+		// month := int(todayDate.Month())
+		// year := todayDate.Year()
+
+		// todayDateString := fmt.Sprintf("%d/%d/%d", day, month, year)
+		allCampaigns, _ := collections.RetrieveActiveCampaigns(todayDate)
+
+		// Process transactions in batches
+		for i := 0; i < BATCH_SIZE; i++ {
 			msg, err := consumer.ReadMessage(time.Second)
 
 			if err != nil {
@@ -119,10 +138,16 @@ func processTransactions(consumer *kafka.Consumer) {
 
 			var transaction models.Transaction
 			json.Unmarshal(msg.Value, &transaction)
+			transaction.DateTime, _ = time.Parse("2/1/2006", transaction.TransactionDate)
+
+			log.Println("Inserted", transaction)
 
 			// Only apply points conversion for valid transaction
 			if services.IsValidTransaction(&transaction) {
-				services.ConvertPoints(&transaction)  
+				services.ConvertPoints(&transaction)
+				
+				// Apply applicable campaigns
+				services.ApplyApplicableCampaign(&transaction, allCampaigns)
 
 				// Update CardMap
 				cardMap[transaction.CardId] += transaction.Points + transaction.Miles + transaction.CashBack
