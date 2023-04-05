@@ -15,18 +15,18 @@ import (
 var userCollection *mongo.Collection = config.OpenCollection(config.Client, "users")
 
 func RetrieveSpecificUser(email string) (result models.User, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	filter := bson.D{{Key: "email", Value: email}}
 
 	err = userCollection.FindOne(ctx, filter).Decode(&result)
-	
+
 	return result, err
 }
 
 func CreateUser(user models.User) (result *mongo.UpdateResult, err error) {
-	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	var ctx, cancel = context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
 
 	filter := bson.D{{Key: "user_id", Value: user.UserID}}
@@ -40,7 +40,7 @@ func CreateUser(user models.User) (result *mongo.UpdateResult, err error) {
 }
 
 func CreateUsers(users models.UserList) (result interface{}, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
 
 	// convert from slice of struct to slice of interface
@@ -56,16 +56,16 @@ func CreateUsers(users models.UserList) (result interface{}, err error) {
 	for _, doc := range t {
 		models = append(models, mongo.NewInsertOneModel().SetDocument(doc))
 	}
-	
+
 	// If an error occurs during the processing of one of the write operations, MongoDB
 	// will continue to process remaining write operations in the list.
 	bulkWriteOptions := options.BulkWrite().SetOrdered(false)
 	// log.Println("Bulk Writing", models)
 	result, err = userCollection.BulkWrite(ctx, models, bulkWriteOptions)
-    if err != nil && !mongo.IsDuplicateKeyError(err) {
-        log.Println(err.Error())
+	if err != nil && !mongo.IsDuplicateKeyError(err) {
+		log.Println(err.Error())
 		panic(err)
-    }
+	}
 
 	return result, err
 
