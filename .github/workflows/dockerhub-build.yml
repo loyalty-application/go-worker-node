@@ -5,6 +5,12 @@ on:
     branches:
       - 'main'
 
+env:
+  AWS_REGION: ap-southeast-1 # set this to your preferred AWS region, e.g. us-west-1
+  DOCKERHUB_REPO_TAG: docker.io/loyaltyapplication/go-worker-node:latest
+  ECS_SERVICE: go-worker-node-service
+  ECS_CLUSTER: go-worker-node-cluster
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -23,4 +29,22 @@ jobs:
         with:
           file: ./docker/Dockerfile
           push: true
-          tags: loyaltyapplication/go-worker-node:latest
+          tags: ${{ env.DOCKERHUB_REPO_TAG }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          IMAGE_TAG: latest
+        run: |
+          # Redeploy ECS
+          aws ecs update-service --region $AWS_REGION --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
